@@ -1,14 +1,14 @@
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 
-let client: IORedis | null = null;
+let client: Redis | null = null;
 
-export function getRedis(): IORedis {
+export function getRedis(): Redis {
   if (!client) {
-    client = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+    client = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
     });
-    client.on("error", (err) => console.error("Worker Redis error:", err.message));
+    client.on("error", (err: Error) => console.error("Worker Redis error:", err.message));
   }
   return client;
 }

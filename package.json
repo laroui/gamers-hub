@@ -31,7 +31,8 @@
   },
   "pnpm": {
     "overrides": {
-      "typescript": "^5.7.0"
+      "typescript": "^5.7.0",
+      "ioredis": "5.9.3"
     }
   }
 }

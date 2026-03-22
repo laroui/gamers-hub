@@ -18,11 +18,10 @@ export function getSyncQueue(): Queue<SyncJobPayload> {
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 50 },
-        timeout: Number(process.env.SYNC_JOB_TIMEOUT_MS ?? 120000),
       },
     });
   }
-  return syncQueue;
+  return syncQueue!;
 }
 
 export async function enqueuePlatformSync(payload: SyncJobPayload): Promise<string> {
