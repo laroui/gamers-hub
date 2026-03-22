@@ -3,7 +3,7 @@ import Supertest from "supertest";
 import Fastify from "fastify";
 import { registerPlugins } from "../../plugins/index.js";
 import { registerRoutes } from "../../routes/index.js";
-import { closeRedis } from "../../db/redis.js";
+import { closeRedis, cacheDelPattern } from "../../db/redis.js";
 import { db } from "../../db/client.js";
 import { achievements } from "../../db/schema.js";
 import { testGameIds, testUserGameIds } from "../setup.js";
@@ -40,6 +40,9 @@ beforeAll(async () => {
   await registerPlugins(app);
   await registerRoutes(app);
   await app.ready();
+
+  // Clear IGDB search caches so mock calls are not skipped by cached results
+  await cacheDelPattern("igdb_search:*");
 
   const res = await Supertest(app.server)
     .post("/api/v1/auth/login")
