@@ -35,6 +35,7 @@ const envSchema = z.object({
 
   // Platform keys (optional — features degrade gracefully)
   STEAM_API_KEY: z.string().optional(),
+  STEAM_OPENID_CALLBACK: z.string().optional(), // defaults to http://localhost:{PORT}/api/v1/auth/steam-openid/callback
   XBOX_CLIENT_ID: z.string().optional(),
   XBOX_CLIENT_SECRET: z.string().optional(),
   XBOX_REDIRECT_URI: z.string().optional(),

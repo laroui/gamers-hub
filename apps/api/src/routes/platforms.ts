@@ -6,6 +6,7 @@ import { getRedis } from "../db/redis.js";
 import { getUserConnections, getConnection, deleteConnection } from "../db/queries/platforms.js";
 import { getOAuthConfig, generateCodeVerifier, computeCodeChallenge, storeOAuthState, storePkceVerifier } from "../services/oauth.js";
 import { randomBytes } from "node:crypto";
+import { env } from "../config/env.js";
 
 const QUEUE_NAME = "platform-sync";
 
@@ -68,13 +69,42 @@ export async function platformRoutes(server: FastifyInstance) {
         return reply.code(400).send({ error: "InvalidPlatform", message: `Unknown platform: ${platform}` });
       }
 
+      // Steam OpenID — generate "Sign in through Steam" URL (requires STEAM_API_KEY on server)
+      if (platform === "steam") {
+        if (!env.STEAM_API_KEY) {
+          return reply.code(503).send({
+            error: "PlatformNotConfigured",
+            message: "Steam is not configured on this server. Add STEAM_API_KEY to your environment.",
+          });
+        }
+
+        const state = randomBytes(16).toString("hex");
+        await storeOAuthState(state, userId);
+
+        const callbackUrl =
+          env.STEAM_OPENID_CALLBACK ??
+          `http://localhost:${env.PORT}/api/v1/auth/steam-openid/callback`;
+
+        const params = new URLSearchParams({
+          "openid.ns": "http://specs.openid.net/auth/2.0",
+          "openid.mode": "checkid_setup",
+          "openid.return_to": `${callbackUrl}?state=${state}`,
+          "openid.realm": callbackUrl.split("/api/")[0]!,
+          "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+          "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+        });
+
+        return reply.send({
+          authUrl: `https://steamcommunity.com/openid/login?${params.toString()}`,
+          state,
+        });
+      }
+
       if (NON_OAUTH_PLATFORMS.has(platform as PlatformId)) {
         return reply.code(422).send({
           error: "NotOAuthPlatform",
           message:
-            platform === "steam"
-              ? "Steam uses an API key. Use POST /api/v1/auth/steam-key instead."
-              : platform === "nintendo"
+            platform === "nintendo"
               ? "Nintendo uses a session token. Use POST /api/v1/auth/nintendo-token instead."
               : "This platform cannot be connected via OAuth.",
         });

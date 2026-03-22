@@ -617,4 +617,108 @@ export async function authRoutes(server: FastifyInstance) {
       return reply.code(200).send({ connected: true });
     },
   });
+
+  // ── GET /steam-openid/callback ────────────────────────────
+  // Steam OpenID relying-party callback. Steam redirects here after the user
+  // authenticates. We verify the OpenID assertion, extract the Steam64 ID,
+  // fetch their display name, then store the connection and close the popup.
+  server.get("/steam-openid/callback", {
+    handler: async (req, reply) => {
+      const query = req.query as Record<string, string>;
+
+      if (query["openid.mode"] === "cancel") {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("Steam login was cancelled"));
+      }
+
+      if (query["openid.mode"] !== "id_res") {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("Unexpected OpenID response"));
+      }
+
+      // Recover user from state param we attached to return_to
+      const state = query["state"];
+      if (!state) {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("Missing state parameter"));
+      }
+
+      const userId = await consumeOAuthState(state);
+      if (!userId) {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("State expired or invalid — please try again"));
+      }
+
+      // Verify the assertion with Steam (prevents replay/forgery attacks)
+      const verifyParams = new URLSearchParams(query);
+      verifyParams.delete("state"); // state is ours, not part of OpenID
+      verifyParams.set("openid.mode", "check_authentication");
+
+      let isValid = false;
+      try {
+        const verifyRes = await fetch("https://steamcommunity.com/openid/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: verifyParams.toString(),
+        });
+        const text = await verifyRes.text();
+        isValid = text.includes("is_valid:true");
+      } catch {
+        return reply
+          .type("text/html")
+          .code(500)
+          .send(oauthErrorHtml("Could not verify with Steam — try again"));
+      }
+
+      if (!isValid) {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("Steam authentication could not be verified"));
+      }
+
+      // Extract Steam64 ID from claimed_id (format: .../openid/id/76561198XXXXXXXXX)
+      const claimedId = query["openid.claimed_id"] ?? "";
+      const steamId64 = claimedId.match(/\/id\/(\d+)$/)?.[1];
+      if (!steamId64) {
+        return reply
+          .type("text/html")
+          .code(400)
+          .send(oauthErrorHtml("Could not extract Steam ID from response"));
+      }
+
+      // Fetch Steam display name
+      let displayName = steamId64;
+      if (env.STEAM_API_KEY) {
+        try {
+          const profileRes = await fetch(
+            `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(env.STEAM_API_KEY)}&steamids=${steamId64}`,
+          );
+          const profileData = (await profileRes.json()) as {
+            response?: { players?: Array<{ personaname?: string }> };
+          };
+          displayName = profileData.response?.players?.[0]?.personaname ?? steamId64;
+        } catch { /* non-fatal — fall back to steam ID */ }
+      }
+
+      await upsertConnection({
+        userId,
+        platform: "steam",
+        accessToken: env.STEAM_API_KEY ?? "",
+        platformUid: steamId64,
+        displayName,
+        syncStatus: "pending",
+      });
+
+      return reply.type("text/html").code(200).send(oauthSuccessHtml("steam"));
+    },
+  });
 }

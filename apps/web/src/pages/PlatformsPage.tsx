@@ -2,7 +2,6 @@ import { useState } from "react";
 import { usePlatforms, useConnectPlatform, useTriggerSync } from "../hooks/usePlatforms.ts";
 import { PLATFORMS } from "../lib/platforms.ts";
 import { PlatformCard } from "../components/platforms/PlatformCard.tsx";
-import { SteamConnectModal } from "../components/platforms/SteamConnectModal.tsx";
 import { NintendoConnectModal } from "../components/platforms/NintendoConnectModal.tsx";
 import { useToast } from "../stores/toast.ts";
 import { Spinner } from "../components/ui/Spinner.tsx";
@@ -14,7 +13,6 @@ export function PlatformsPage() {
   const { mutateAsync: triggerSync } = useTriggerSync();
   const { success, error, info } = useToast();
 
-  const [steamModalOpen, setSteamModalOpen] = useState(false);
   const [nintendoModalOpen, setNintendoModalOpen] = useState(false);
   const [syncAllActive, setSyncAllActive] = useState(false);
   const [syncAllProgress, setSyncAllProgress] = useState<{ done: number; total: number } | null>(
@@ -32,10 +30,6 @@ export function PlatformsPage() {
 
   // ── Connect handler ───────────────────────────────────────────
   const handleConnect = async (platformId: PlatformId) => {
-    if (platformId === "steam") {
-      setSteamModalOpen(true);
-      return;
-    }
     if (platformId === "nintendo") {
       setNintendoModalOpen(true);
       return;
@@ -60,7 +54,9 @@ export function PlatformsPage() {
       info(`Opening ${platformName} login…`);
 
       const handler = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        // Accept messages from the popup — in dev the API (port 3000) differs from
+        // the frontend origin (port 5173), so we can't enforce same-origin here.
+        // We verify the payload shape (success + matching platform) instead.
         if (
           (event.data as { success?: boolean; platform?: string } | null)?.success &&
           (event.data as { success?: boolean; platform?: string }).platform === platformId
@@ -218,7 +214,6 @@ export function PlatformsPage() {
       )}
 
       {/* Modals */}
-      {steamModalOpen && <SteamConnectModal onClose={() => setSteamModalOpen(false)} />}
       {nintendoModalOpen && <NintendoConnectModal onClose={() => setNintendoModalOpen(false)} />}
     </div>
   );
