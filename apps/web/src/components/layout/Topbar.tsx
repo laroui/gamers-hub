@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../lib/auth/AuthProvider.tsx";
 import { useLibraryStore } from "../../stores/ui.ts";
-import { useDebouncedCallback } from "../../hooks/useDebouncedCallback.ts";
+import { useSearchStore } from "../../stores/search.ts";
 
 const PAGE_TITLES: Record<string, string> = {
   "/library": "MY LIBRARY",
@@ -55,15 +55,12 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const { filters, setFilter } = useLibraryStore();
+  const { open } = useSearchStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const title = PAGE_TITLES[location.pathname] ?? "GAMERS HUB";
   const isLibrary = location.pathname === "/library";
-
-  const handleSearch = useDebouncedCallback((value: string) => {
-    setFilter("search", value || undefined);
-  }, 300);
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? "GH";
 
@@ -136,42 +133,41 @@ export function Topbar() {
         </div>
       )}
 
-      {/* Search */}
-      {isLibrary && (
-        <div style={{ position: "relative" }}>
-          <span
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: "var(--gh-text3)",
-              fontSize: "14px",
-              pointerEvents: "none",
-            }}
-          >
-            ⌕
-          </span>
-          <input
-            type="text"
-            placeholder="Search games…"
-            defaultValue={filters.search ?? ""}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{
-              background: "var(--gh-surface)",
-              border: "1px solid var(--gh-border2)",
-              borderRadius: "10px",
-              padding: "8px 16px 8px 36px",
-              color: "var(--gh-text)",
-              fontFamily: "var(--font-body)",
-              fontSize: "13px",
-              width: "220px",
-              outline: "none",
-              transition: "all var(--transition)",
-            }}
-          />
-        </div>
-      )}
+      {/* Universal search trigger */}
+      <button
+        onClick={open}
+        style={{
+          background: "var(--gh-surface)",
+          border: "1px solid var(--gh-border2)",
+          borderRadius: "10px",
+          padding: "7px 12px",
+          color: "var(--gh-text3)",
+          fontFamily: "var(--font-body)",
+          fontSize: "13px",
+          width: "220px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          transition: "all var(--transition)",
+        }}
+      >
+        <span style={{ fontSize: "14px" }}>⌕</span>
+        <span style={{ flex: 1, textAlign: "left" }}>Search games…</span>
+        <kbd
+          style={{
+            background: "var(--gh-surface3)",
+            border: "1px solid var(--gh-border)",
+            borderRadius: "4px",
+            padding: "1px 5px",
+            fontSize: "11px",
+            color: "var(--gh-text3)",
+            fontFamily: "var(--font-body)",
+          }}
+        >
+          ⌘K
+        </kbd>
+      </button>
 
       {/* Notification bell */}
       <div style={{ position: "relative", cursor: "pointer" }}>

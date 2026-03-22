@@ -3,6 +3,8 @@ import { AuthProvider } from "./lib/auth/AuthProvider.tsx";
 import { ProtectedRoute } from "./lib/auth/ProtectedRoute.tsx";
 import { AppShell } from "./components/layout/AppShell.tsx";
 import { useTauriEvents } from "./hooks/useTauriEvents.ts";
+import { useCommandPalette } from "./hooks/useCommandPalette.ts";
+import { CommandPalette } from "./components/search/CommandPalette.tsx";
 
 // Pages — implemented in B7+
 import { LoginPage } from "./pages/LoginPage.tsx";
@@ -15,9 +17,11 @@ import { ProfilePage } from "./pages/ProfilePage.tsx";
 
 export function App() {
   useTauriEvents();
+  useCommandPalette();
 
   return (
     <AuthProvider>
+      <CommandPalette />
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
