@@ -223,16 +223,18 @@ export async function getWeeklyPlaytime(
 export async function getPlaytimeByPlatform(
   userId: string,
 ): Promise<{ platform: string; minutes: number; games: number }[]> {
+  // Use userGames.minutesPlayed (sourced from Steam playtime_forever) — playSessions
+  // is not populated with reliable per-session data from Steam's API.
   const rows = await db
     .select({
-      platform: playSessions.platform,
-      minutes: sql<number>`SUM(${playSessions.minutes})::int`,
-      games: sql<number>`COUNT(DISTINCT ${playSessions.userGameId})::int`,
+      platform: userGames.platform,
+      minutes: sql<number>`SUM(${userGames.minutesPlayed})::int`,
+      games: sql<number>`COUNT(*)::int`,
     })
-    .from(playSessions)
-    .where(eq(playSessions.userId, userId))
-    .groupBy(playSessions.platform)
-    .orderBy(sql`SUM(${playSessions.minutes}) DESC`);
+    .from(userGames)
+    .where(eq(userGames.userId, userId))
+    .groupBy(userGames.platform)
+    .orderBy(sql`SUM(${userGames.minutesPlayed}) DESC`);
 
   return rows.map((r) => ({
     platform: r.platform,
@@ -246,18 +248,19 @@ export async function getPlaytimeByPlatform(
 export async function getPlaytimeByGenre(
   userId: string,
 ): Promise<{ genre: string; minutes: number; games: number }[]> {
+  // Use userGames.minutesPlayed (sourced from Steam playtime_forever) — playSessions
+  // is not populated with reliable per-session data from Steam's API.
   const rows = await db
     .select({
       genre: sql<string>`UNNEST(${games.genres})`,
-      minutes: sql<number>`SUM(${playSessions.minutes})::int`,
-      games: sql<number>`COUNT(DISTINCT ${playSessions.userGameId})::int`,
+      minutes: sql<number>`SUM(${userGames.minutesPlayed})::int`,
+      games: sql<number>`COUNT(DISTINCT ${userGames.id})::int`,
     })
-    .from(playSessions)
-    .innerJoin(userGames, eq(playSessions.userGameId, userGames.id))
+    .from(userGames)
     .innerJoin(games, eq(userGames.gameId, games.id))
-    .where(eq(playSessions.userId, userId))
+    .where(eq(userGames.userId, userId))
     .groupBy(sql`UNNEST(${games.genres})`)
-    .orderBy(sql`SUM(${playSessions.minutes}) DESC`);
+    .orderBy(sql`SUM(${userGames.minutesPlayed}) DESC`);
 
   return rows.map((r) => ({
     genre: r.genre,

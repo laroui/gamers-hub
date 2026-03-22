@@ -180,6 +180,8 @@ export async function bulkInsertSessions(
         device: s.device ?? null,
       })),
     )
+    // onConflictDoNothing fires on the (user_game_id, day) unique constraint
+    // added in migration 0002 — prevents duplicate sessions on repeated syncs.
     .onConflictDoNothing()
     .returning({ id: playSessions.id });
   return result.length;

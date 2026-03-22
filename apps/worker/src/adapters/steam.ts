@@ -68,6 +68,7 @@ export class SteamAdapter implements PlatformAdapter {
           appid: number;
           name: string;
           playtime_forever: number;
+          playtime_2weeks?: number;
           rtime_last_played: number;
         }>;
       };
@@ -80,7 +81,10 @@ export class SteamAdapter implements PlatformAdapter {
       platformGameId: String(g.appid),
       title: g.name,
       steamAppId: g.appid,
-      minutesPlayed: g.playtime_forever,
+      // Use playtime_2weeks (recent playtime) for session duration — playtime_forever
+      // is the lifetime total and must not be used as a single session length.
+      // Fall back to a conservative 60-minute estimate if the field is absent.
+      minutesPlayed: g.playtime_2weeks ?? 60,
       lastPlayedAt: g.rtime_last_played > 0
         ? new Date(g.rtime_last_played * 1000).toISOString()
         : undefined,
