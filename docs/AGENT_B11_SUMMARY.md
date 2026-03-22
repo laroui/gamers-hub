@@ -33,7 +33,7 @@ The objective of this final frontend batch was to implement the comprehensive `/
 *   **Achievement Deep-Sync**: Rewrote the Steam sync logic to calculate and persist completion rates and earned counts accurately (e.g., verifying 43/50 for ARC Raiders).
 *   **Schema Resilience**: Implemented a "Schema First" fallback in the Steam adapter, ensuring achievement progress is visible even if player profiles are private.
 *   **Completion Engine**: Integrated a `completion_pct` calculation directly into the worker and database, ensuring consistent UI rings across the hub.
-*   **Data Integrity**: Developed a `cleanup-dummy.ts` maintenance utility and purged **35 placeholder/seed records** to leave a 100% authentic library.
+*   **Global Progress Hotfix**: Programmatically backfilled completion rates for all **69 games** in the library (e.g., Marathon at 21%, THE FINALS at 6%), replacing initial placeholders with calculated achievement ratios.
 *   **Queue Optimization**: Fixed worker queue mismatches (`platform-sync`) and optimized manual trigger scripts for testing.
 
 ## Quality Assurance
