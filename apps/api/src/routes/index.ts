@@ -1,6 +1,7 @@
-import type { FastifyInstance } from "fastify";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFastify = import("fastify").FastifyInstance<any, any, any, any, any>;
 
-export async function registerRoutes(server: FastifyInstance) {
+export async function registerRoutes(server: AnyFastify) {
   // Lazy import each route module — B3+ will fill these in
   const { authRoutes } = await import("./auth.js");
   const { platformRoutes } = await import("./platforms.js");

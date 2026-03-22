@@ -1,17 +1,17 @@
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import { env } from "../config/env.js";
 
-let redisClient: IORedis | null = null;
+let redisClient: Redis | null = null;
 
-export function getRedis(): IORedis {
+export function getRedis(): Redis {
   if (!redisClient) {
-    redisClient = new IORedis(env.REDIS_URL, {
+    redisClient = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null, // required by BullMQ
       enableReadyCheck: false,
       lazyConnect: true,
     });
 
-    redisClient.on("error", (err) => {
+    redisClient.on("error", (err: Error) => {
       console.error("Redis error:", err.message);
     });
 
@@ -28,6 +28,7 @@ export async function closeRedis(): Promise<void> {
     redisClient = null;
   }
 }
+
 
 // ── Cache helpers ─────────────────────────────────────────────
 export async function cacheGet<T>(key: string): Promise<T | null> {

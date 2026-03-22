@@ -37,9 +37,10 @@ export const useLibraryStore = create<LibraryFilterState>()(
       filters: defaultFilters,
       viewMode: "grid",
       setFilter: (key, value) =>
-        set((state) => ({
-          filters: { ...state.filters, [key]: value, cursor: undefined },
-        })),
+        set((state) => {
+          const { cursor: _cursor, ...rest } = { ...state.filters, [key]: value };
+          return { filters: rest };
+        }),
       resetFilters: () => set({ filters: defaultFilters }),
       setViewMode: (mode) => set({ viewMode: mode }),
     }),

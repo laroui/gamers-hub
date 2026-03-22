@@ -7,12 +7,10 @@ import { registerRoutes } from "./routes/index.js";
 const server = Fastify({
   logger: {
     level: env.LOG_LEVEL,
-    transport:
-      env.NODE_ENV === "development"
-        ? { target: "pino-pretty", options: { colorize: true } }
-        : undefined,
+    ...(env.NODE_ENV === "development"
+      ? { transport: { target: "pino-pretty", options: { colorize: true } } }
+      : {}),
   },
-  requestTimeout: 30000,
   bodyLimit: 1048576, // 1MB
 });
 

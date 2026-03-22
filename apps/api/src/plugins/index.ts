@@ -1,4 +1,5 @@
-import type { FastifyInstance } from "fastify";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFastify = import("fastify").FastifyInstance<any, any, any, any, any>;
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import helmet from "@fastify/helmet";
@@ -9,7 +10,7 @@ import swaggerUi from "@fastify/swagger-ui";
 import { getRedis } from "../db/redis.js";
 import { env } from "../config/env.js";
 
-export async function registerPlugins(server: FastifyInstance) {
+export async function registerPlugins(server: AnyFastify) {
   // ── Security headers ────────────────────────────────────────
   await server.register(helmet, {
     contentSecurityPolicy: false, // handled by nginx in production
