@@ -1,8 +1,10 @@
 import "dotenv/config";
-import { Worker, type Job } from "bullmq";
+import { Worker } from "bullmq";
 import { getRedis } from "./redis.js";
-import { QUEUE_NAMES } from "./queues.js";
-import type { SyncJobPayload } from "@gamers-hub/types";
+import { QUEUE_NAMES, enqueuePlatformSync } from "./queues.js";
+import { syncPlatform } from "./services/sync.js";
+import { getAllConnectedPlatforms } from "./db/queries.js";
+import type { SyncJobPayload, PlatformId } from "@gamers-hub/types";
 import pino from "pino";
 
 const log = pino({ level: process.env.LOG_LEVEL ?? "info" });
@@ -10,17 +12,7 @@ const log = pino({ level: process.env.LOG_LEVEL ?? "info" });
 // ── Platform sync worker ──────────────────────────────────────
 const syncWorker = new Worker<SyncJobPayload>(
   QUEUE_NAMES.PLATFORM_SYNC,
-  async (job: Job<SyncJobPayload>) => {
-    const { userId, platform, triggeredBy } = job.data;
-    log.info({ userId, platform, triggeredBy }, "Processing sync job");
-
-    // Dynamic import so each adapter is only loaded when needed
-    const { runSync } = await import(`./jobs/sync-${platform}.js`).catch(() =>
-      import("./jobs/sync-stub.js"),
-    );
-
-    await runSync(job);
-  },
+  syncPlatform,
   {
     connection: getRedis(),
     concurrency: Number(process.env.WORKER_CONCURRENCY ?? 3),
@@ -42,7 +34,33 @@ syncWorker.on("progress", (job, progress) => {
 
 log.info(`Worker started — listening on queue: ${QUEUE_NAMES.PLATFORM_SYNC}`);
 
-// Graceful shutdown
+// ── Scheduled auto-sync (every 6 hours) ──────────────────────
+
+async function scheduleAutoSync(): Promise<void> {
+  try {
+    const connections = await getAllConnectedPlatforms();
+    const staleThreshold = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+    for (const conn of connections) {
+      const isStale = !conn.lastSyncedAt || conn.lastSyncedAt < staleThreshold;
+      if (isStale) {
+        await enqueuePlatformSync({
+          userId: conn.userId,
+          platform: conn.platform as PlatformId,
+          triggeredBy: "scheduled",
+        });
+      }
+    }
+  } catch (err) {
+    log.error({ err }, "Auto-sync scheduling error");
+  }
+}
+
+scheduleAutoSync();
+setInterval(scheduleAutoSync, 6 * 60 * 60 * 1000);
+
+// ── Graceful shutdown ─────────────────────────────────────────
+
 const shutdown = async (signal: string) => {
   log.info(`Received ${signal}, closing worker`);
   await syncWorker.close();
