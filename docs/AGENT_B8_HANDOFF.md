@@ -13,8 +13,42 @@
 | B5 | Games & Library API (176 tests) | ✅ `dfd9fba` |
 | B6 | Stats & Analytics API (211 tests) | ✅ `26f120a` |
 | B7 | React App Shell + Auth UI | ✅ `ad62e66` |
+| Fix | API dev server startup | ✅ `7168611` |
 
 API: 211/211 tests passing. Worker: 33/33. Frontend: typecheck clean.
+
+---
+
+## Dev environment fixes (commit `7168611`)
+
+Two bugs prevented the API from starting in dev mode — both now fixed:
+
+1. **`tsx` watch arg order** — script was `tsx --env-file=... watch src/index.ts`; tsx v4 treats `watch` as a module path unless it comes first. Fixed to `tsx watch --env-file=../../.env src/index.ts`.
+2. **`pino-pretty` not installed** — Fastify crashed on startup trying to load it as a pino transport. Added as devDependency.
+
+### Correct local dev startup sequence
+
+```bash
+# 1. Start infrastructure (Postgres, Redis, MinIO)
+docker compose up -d postgres redis minio
+
+# 2. Migrate + seed (only needed once or after docker restart)
+pnpm db:migrate
+pnpm db:seed
+
+# 3. Terminal A — API (hot-reload)
+pnpm --filter api run dev
+
+# 4. Terminal B — Frontend (Vite HMR)
+pnpm --filter web run dev
+```
+
+- API: `http://localhost:3000`
+- Frontend: `http://localhost:5173`
+- Vite proxies `/api` → `http://localhost:3000` (already configured)
+- Seed login: `nacim@gamershub.dev` / `password123`
+
+**Do NOT run `pnpm docker:up`** for local dev — that starts api/worker/web containers too and requires a full Docker build.
 
 ---
 
