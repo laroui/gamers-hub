@@ -12,6 +12,7 @@ import {
   upsertConnection,
   updateSyncStatus,
   getGameById,
+  createNotification,
 } from "../db/queries.js";
 
 // ── Progress helper ───────────────────────────────────────────
@@ -224,8 +225,35 @@ export async function syncPlatform(job: Job<SyncJobPayload>): Promise<void> {
     // 9. Mark complete
     await updateSyncStatus(userId, platform, "success", new Date());
     await report(job, "done", rawGames.length, rawGames.length, "Sync complete");
+
+    // 10. Emit sync_complete notification (non-fatal)
+    try {
+      await createNotification({
+        userId,
+        type: "sync_complete",
+        title: "Sync complete",
+        body: `${platform} sync finished — ${rawGames.length} game${rawGames.length === 1 ? "" : "s"} updated.`,
+        payload: { platform, gameCount: rawGames.length },
+      });
+    } catch {
+      // Non-fatal
+    }
   } catch (err) {
     await updateSyncStatus(userId, platform, "error").catch(() => {});
+
+    // Emit sync_error notification (non-fatal)
+    try {
+      await createNotification({
+        userId,
+        type: "sync_error",
+        title: "Sync failed",
+        body: `${platform} sync encountered an error. Please try again.`,
+        payload: { platform },
+      });
+    } catch {
+      // Non-fatal
+    }
+
     throw err;
   }
 }

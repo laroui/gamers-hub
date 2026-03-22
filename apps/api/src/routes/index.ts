@@ -9,6 +9,7 @@ export async function registerRoutes(server: AnyFastify) {
   const { gamesRoutes } = await import("./games.js");
   const { sessionsRoutes } = await import("./sessions.js");
   const { statsRoutes } = await import("./stats.js");
+  const { notificationsRoutes } = await import("./notifications.js");
 
   await server.register(authRoutes, { prefix: "/api/v1/auth" });
   await server.register(platformRoutes, { prefix: "/api/v1/platforms" });
@@ -16,4 +17,5 @@ export async function registerRoutes(server: AnyFastify) {
   await server.register(gamesRoutes, { prefix: "/api/v1/games" });
   await server.register(sessionsRoutes, { prefix: "/api/v1/sessions" });
   await server.register(statsRoutes, { prefix: "/api/v1/stats" });
+  await server.register(notificationsRoutes, { prefix: "/api/v1/notifications" });
 }

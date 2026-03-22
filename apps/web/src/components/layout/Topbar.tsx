@@ -3,6 +3,8 @@ import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../lib/auth/AuthProvider.tsx";
 import { useLibraryStore } from "../../stores/ui.ts";
 import { useSearchStore } from "../../stores/search.ts";
+import { useUnreadCount } from "../../hooks/useNotifications.ts";
+import { NotificationDrawer } from "../notifications/NotificationDrawer.tsx";
 
 const PAGE_TITLES: Record<string, string> = {
   "/library": "MY LIBRARY",
@@ -57,7 +59,9 @@ export function Topbar() {
   const { filters, setFilter } = useLibraryStore();
   const { open } = useSearchStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   const title = PAGE_TITLES[location.pathname] ?? "GAMERS HUB";
   const isLibrary = location.pathname === "/library";
@@ -170,12 +174,55 @@ export function Topbar() {
       </button>
 
       {/* Notification bell */}
-      <div style={{ position: "relative", cursor: "pointer" }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="var(--gh-text3)" strokeWidth="2">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => setDrawerOpen((prev) => !prev)}
+          style={{
+            background: drawerOpen ? "var(--gh-surface2)" : "none",
+            border: drawerOpen ? "1px solid var(--gh-border2)" : "1px solid transparent",
+            borderRadius: "8px",
+            cursor: "pointer",
+            padding: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+            transition: "all var(--transition)",
+            color: drawerOpen ? "var(--gh-text)" : "var(--gh-text3)",
+          }}
+          aria-label="Notifications"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          {unreadCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: "2px",
+                right: "2px",
+                background: "var(--gh-pink)",
+                color: "#fff",
+                fontSize: "9px",
+                fontWeight: 700,
+                fontFamily: "var(--font-body)",
+                minWidth: "14px",
+                height: "14px",
+                borderRadius: "7px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 3px",
+                lineHeight: 1,
+              }}
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+        <NotificationDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </div>
 
       {/* Avatar + dropdown */}

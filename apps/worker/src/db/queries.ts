@@ -4,7 +4,7 @@
 import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { PlatformId } from "@gamers-hub/types";
 import { db } from "./client.js";
-import { games, userGames, playSessions, platformConnections, achievements } from "./schema.js";
+import { games, userGames, playSessions, platformConnections, achievements, notifications } from "./schema.js";
 
 // ── Games ──────────────────────────────────────────────────────
 
@@ -319,4 +319,22 @@ export async function getAllConnectedPlatforms(): Promise<RawConnectionRow[]> {
     .select()
     .from(platformConnections)
     .where(eq(platformConnections.syncStatus, "success"));
+}
+
+// ── Notifications ─────────────────────────────────────────────
+
+export async function createNotification(data: {
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  payload?: Record<string, unknown>;
+}): Promise<void> {
+  await db.insert(notifications).values({
+    userId: data.userId,
+    type: data.type,
+    title: data.title,
+    body: data.body,
+    payload: data.payload ?? null,
+  });
 }

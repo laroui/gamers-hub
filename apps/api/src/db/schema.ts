@@ -175,3 +175,26 @@ export const playSessionsRelations = relations(playSessions, ({ one }) => ({
   user: one(users, { fields: [playSessions.userId], references: [users.id] }),
   userGame: one(userGames, { fields: [playSessions.userGameId], references: [userGames.id] }),
 }));
+
+// ── Notifications ─────────────────────────────────────────────
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    payload: jsonb("payload"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => ({
+    userIdIdx: index("notifications_user_id_idx").on(t.userId),
+    createdAtIdx: index("notifications_created_at_idx").on(t.createdAt),
+  }),
+);

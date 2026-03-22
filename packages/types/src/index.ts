@@ -210,3 +210,22 @@ export interface LibraryQueryParams {
   limit?: number;
   cursor?: string;
 }
+
+// ── Notifications ─────────────────────────────────────────────
+export type NotificationType =
+  | "sync_complete"
+  | "sync_error"
+  | "achievement_unlocked"
+  | "platform_connected";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  payload: Record<string, unknown> | null;
+  readAt: string | null;
+  createdAt: string;
+  isRead: boolean;
+}
