@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { uploadBuffer } from "../services/storage.js";
 import { upsertConnection } from "../db/queries/platforms.js";
 import {
   sha256,
@@ -630,6 +631,98 @@ export async function authRoutes(server: FastifyInstance) {
       });
 
       return reply.code(200).send({ connected: true });
+    },
+  });
+
+  // ── POST /avatar ──────────────────────────────────────────
+  server.post("/avatar", {
+    preHandler: authMiddleware,
+    handler: async (req, reply) => {
+      const data = await req.file();
+      if (!data) {
+        return reply.code(400).send({ error: "NoFile", message: "No file uploaded" });
+      }
+
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(data.mimetype)) {
+        return reply.code(400).send({
+          error: "InvalidMimeType",
+          message: "Only JPEG, PNG, and WebP images are allowed",
+        });
+      }
+
+      const buffer = await data.toBuffer();
+
+      const extMap: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+      };
+      const ext = extMap[data.mimetype] ?? "jpg";
+      const objectName = `avatars/${req.user.userId}.${ext}`;
+
+      const avatarUrl = await uploadBuffer(objectName, buffer, data.mimetype);
+
+      const [updated] = await db
+        .update(users)
+        .set({ avatarUrl, updatedAt: new Date() })
+        .where(eq(users.id, req.user.userId))
+        .returning();
+
+      if (!updated) {
+        return reply.code(404).send({ error: "NotFound", message: "User not found" });
+      }
+
+      return reply.code(200).send(stripHash(updated));
+    },
+  });
+
+  // ── POST /change-password ─────────────────────────────────
+  server.post("/change-password", {
+    preHandler: authMiddleware,
+    handler: async (req, reply) => {
+      const changePasswordBody = z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8, "Password must be at least 8 characters"),
+      });
+
+      const parsed = changePasswordBody.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.code(400).send({
+          error: "ValidationError",
+          message: "Invalid request body",
+          details: parsed.error.flatten().fieldErrors,
+        });
+      }
+      const body = parsed.data;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, req.user.userId))
+        .limit(1);
+
+      if (!user) {
+        return reply.code(404).send({ error: "NotFound", message: "User not found" });
+      }
+
+      const passwordValid = await bcrypt.compare(body.currentPassword, user.passwordHash);
+      if (!passwordValid) {
+        return reply.code(401).send({
+          error: "InvalidCredentials",
+          message: "Current password is incorrect",
+        });
+      }
+
+      const newHash = await bcrypt.hash(body.newPassword, 10);
+      await db
+        .update(users)
+        .set({ passwordHash: newHash, updatedAt: new Date() })
+        .where(eq(users.id, req.user.userId));
+
+      await revokeAllRefreshTokens(req.user.userId);
+
+      return reply.code(200).send({ message: "Password changed. Please log in again." });
     },
   });
 

@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import helmet from "@fastify/helmet";
 import jwt from "@fastify/jwt";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -27,6 +28,13 @@ export async function registerPlugins(server: AnyFastify) {
   await server.register(cookie, {
     secret: env.JWT_REFRESH_SECRET,
     parseOptions: {},
+  });
+
+  // ── Multipart (file uploads) ─────────────────────────────────
+  await server.register(multipart, {
+    limits: {
+      fileSize: 2 * 1024 * 1024, // 2 MB
+    },
   });
 
   // ── JWT ─────────────────────────────────────────────────────

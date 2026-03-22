@@ -188,13 +188,22 @@ export function Topbar() {
           onClick={() => setDropdownOpen((prev) => !prev)}
           style={{
             width: "34px", height: "34px", borderRadius: "50%",
+            overflow: "hidden",
             background: "linear-gradient(135deg, var(--gh-purple), var(--gh-pink))",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontFamily: "var(--font-display)", fontSize: "13px", fontWeight: 700,
             cursor: "pointer", flexShrink: 0, userSelect: "none",
           }}
         >
-          {initials}
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.username}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            initials
+          )}
         </div>
 
         {dropdownOpen && (
