@@ -17,7 +17,10 @@ export function GameCard({ game }: GameCardProps) {
   return (
     <div
       className="gh-card gh-card-hover"
-      onClick={() => navigate(`/library/${game.id}`)}
+      onClick={() => {
+        sessionStorage.setItem("library-scroll", String(window.scrollY));
+        navigate(`/library/${game.id}`);
+      }}
       style={{ cursor: "pointer", overflow: "hidden" }}
     >
       {/* Cover */}

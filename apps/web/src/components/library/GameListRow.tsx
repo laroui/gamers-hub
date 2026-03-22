@@ -10,7 +10,10 @@ export function GameListRow({ game }: { game: UserGame }) {
   return (
     <div
       className="gh-card gh-card-hover"
-      onClick={() => navigate(`/library/${game.id}`)}
+      onClick={() => {
+        sessionStorage.setItem("library-scroll", String(window.scrollY));
+        navigate(`/library/${game.id}`);
+      }}
       style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer" }}
     >
       {/* Mini cover */}
