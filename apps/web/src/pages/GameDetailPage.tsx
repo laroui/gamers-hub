@@ -13,6 +13,7 @@ import { AchievementsGrid } from "../components/game/AchievementsGrid.tsx";
 import { SessionHistory } from "../components/game/SessionHistory.tsx";
 import { PageLoader } from "../components/ui/PageLoader.tsx";
 import { getPlatform } from "../lib/platforms.ts";
+import { LaunchButton } from "../components/game/LaunchButton.tsx";
 import type { GameStatus } from "@gamers-hub/types";
 
 export function GameDetailPage() {
@@ -121,6 +122,9 @@ export function GameDetailPage() {
                   padding: "2px 8px"
                 }}>MC {game.metacritic}</span>
               )}
+            </div>
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: isMobile ? "center" : "flex-start" }}>
+              <LaunchButton platform={userGame.platform} platformGameId={userGame.platformGameId} />
             </div>
           </div>
 
