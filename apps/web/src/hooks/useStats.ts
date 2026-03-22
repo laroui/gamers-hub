@@ -57,12 +57,12 @@ export function usePlayStreaks() {
   });
 }
 
-export function useWeeklyPlaytime(weeks = 12) {
+export function useWeeklyPlaytime(year: number) {
   return useQuery({
-    queryKey: ["stats", "weekly", weeks],
+    queryKey: ["stats", "weekly", year],
     queryFn: async () => {
       const { data } = await api.get<WeeklyPlaytime[]>("/stats/weekly", {
-        params: { weeks },
+        params: { year },
       });
       return data;
     },
@@ -70,22 +70,26 @@ export function useWeeklyPlaytime(weeks = 12) {
   });
 }
 
-export function usePlaytimeByPlatform() {
+export function usePlaytimeByPlatform(year: number) {
   return useQuery({
-    queryKey: ["stats", "platform"],
+    queryKey: ["stats", "platform", year],
     queryFn: async () => {
-      const { data } = await api.get<Omit<PlaytimeByPlatform, "hours">[]>("/stats/platforms");
+      const { data } = await api.get<Omit<PlaytimeByPlatform, "hours">[]>("/stats/platforms", {
+        params: { year },
+      });
       return data.map((d) => ({ ...d, hours: Math.round(d.minutes / 60) }));
     },
     staleTime: 60 * 60 * 1000,
   });
 }
 
-export function usePlaytimeByGenre() {
+export function usePlaytimeByGenre(year: number) {
   return useQuery({
-    queryKey: ["stats", "genre"],
+    queryKey: ["stats", "genre", year],
     queryFn: async () => {
-      const { data } = await api.get<Omit<PlaytimeByGenre, "hours">[]>("/stats/genres");
+      const { data } = await api.get<Omit<PlaytimeByGenre, "hours">[]>("/stats/genres", {
+        params: { year },
+      });
       return data.map((d) => ({ ...d, hours: Math.round(d.minutes / 60) }));
     },
     staleTime: 60 * 60 * 1000,

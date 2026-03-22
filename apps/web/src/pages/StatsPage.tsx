@@ -106,25 +106,25 @@ export function StatsPage() {
         }}
       >
         <section>
-          <SectionHeader title="Weekly Playtime" subtitle="Last 12 weeks" />
+          <SectionHeader title="Weekly Playtime" subtitle={`${selectedYear} week by week`} />
           <div className="gh-card" style={{ padding: "20px" }}>
-            <WeeklyChart />
+            <WeeklyChart year={selectedYear} />
           </div>
         </section>
 
         <section>
-          <SectionHeader title="By Platform" />
+          <SectionHeader title="By Platform" subtitle={`${selectedYear} breakdown`} />
           <div className="gh-card" style={{ padding: "20px" }}>
-            <PlatformDonut />
+            <PlatformDonut year={selectedYear} />
           </div>
         </section>
       </div>
 
       {/* Genre chart */}
       <section style={{ marginBottom: "32px" }}>
-        <SectionHeader title="By Genre" subtitle="Top 8 genres by hours" />
+        <SectionHeader title="By Genre" subtitle={`Top 8 genres by hours in ${selectedYear}`} />
         <div className="gh-card" style={{ padding: "20px" }}>
-          <GenreChart />
+          <GenreChart year={selectedYear} />
         </div>
       </section>
 

@@ -46,8 +46,8 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function WeeklyChart() {
-  const { data = [], isLoading } = useWeeklyPlaytime(12);
+export function WeeklyChart({ year }: { year: number }) {
+  const { data = [], isLoading } = useWeeklyPlaytime(year);
 
   const chartData = data.map((w) => ({
     week: formatWeekLabel(w.week),
@@ -73,7 +73,7 @@ export function WeeklyChart() {
           borderRadius: "12px",
         }}
       >
-        No play sessions in the last 12 weeks
+        No play sessions recorded for {year}
       </div>
     );
   }

@@ -3,8 +3,8 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { usePlaytimeByPlatform } from "../../hooks/useStats.ts";
 import { getPlatform } from "../../lib/platforms.ts";
 
-export function PlatformDonut() {
-  const { data = [], isLoading } = usePlaytimeByPlatform();
+export function PlatformDonut({ year }: { year: number }) {
+  const { data = [], isLoading } = usePlaytimeByPlatform(year);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   if (isLoading) {

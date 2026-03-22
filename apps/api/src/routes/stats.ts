@@ -33,6 +33,15 @@ const weeksQuery = z.object({
   weeks: z.coerce.number().int().min(1).max(52).default(12),
 });
 
+const yearOnlyQuery = z.object({
+  year: z.coerce
+    .number()
+    .int()
+    .min(2000)
+    .max(2100)
+    .default(new Date().getFullYear()),
+});
+
 export async function statsRoutes(server: FastifyInstance) {
   // ── GET /api/v1/stats/overview ────────────────────────────────
   server.get("/overview", { preHandler: authMiddleware }, async (request, reply) => {
@@ -74,42 +83,56 @@ export async function statsRoutes(server: FastifyInstance) {
     return reply.send(data);
   });
 
-  // ── GET /api/v1/stats/weekly?weeks= ──────────────────────────
+  // ── GET /api/v1/stats/weekly?year= ───────────────────────────
   server.get("/weekly", { preHandler: authMiddleware }, async (request, reply) => {
     const { userId } = request.user;
-    const q = weeksQuery.safeParse(request.query);
+    const q = yearOnlyQuery.safeParse(request.query);
     if (!q.success) {
       return reply
         .code(400)
         .send({ statusCode: 400, error: "Bad Request", message: q.error.message });
     }
-    const { weeks } = q.data;
-    const key = `weekly_playtime:${userId}:${weeks}`;
+    const { year } = q.data;
+    const key = `weekly_playtime:${userId}:${year}`;
     const cached = await cacheGet(key);
     if (cached) return reply.send(cached);
-    const data = await getWeeklyPlaytime(userId, weeks);
+    const data = await getWeeklyPlaytime(userId, year);
     await cacheSet(key, data, WEEKLY_TTL);
     return reply.send(data);
   });
 
-  // ── GET /api/v1/stats/platforms ───────────────────────────────
+  // ── GET /api/v1/stats/platforms?year= ────────────────────────
   server.get("/platforms", { preHandler: authMiddleware }, async (request, reply) => {
     const { userId } = request.user;
-    const key = `playtime_platform:${userId}`;
+    const q = yearOnlyQuery.safeParse(request.query);
+    if (!q.success) {
+      return reply
+        .code(400)
+        .send({ statusCode: 400, error: "Bad Request", message: q.error.message });
+    }
+    const { year } = q.data;
+    const key = `playtime_platform:${userId}:${year}`;
     const cached = await cacheGet(key);
     if (cached) return reply.send(cached);
-    const data = await getPlaytimeByPlatform(userId);
+    const data = await getPlaytimeByPlatform(userId, year);
     await cacheSet(key, data, PLATFORM_TTL);
     return reply.send(data);
   });
 
-  // ── GET /api/v1/stats/genres ──────────────────────────────────
+  // ── GET /api/v1/stats/genres?year= ───────────────────────────
   server.get("/genres", { preHandler: authMiddleware }, async (request, reply) => {
     const { userId } = request.user;
-    const key = `playtime_genre:${userId}`;
+    const q = yearOnlyQuery.safeParse(request.query);
+    if (!q.success) {
+      return reply
+        .code(400)
+        .send({ statusCode: 400, error: "Bad Request", message: q.error.message });
+    }
+    const { year } = q.data;
+    const key = `playtime_genre:${userId}:${year}`;
     const cached = await cacheGet(key);
     if (cached) return reply.send(cached);
-    const data = await getPlaytimeByGenre(userId);
+    const data = await getPlaytimeByGenre(userId, year);
     await cacheSet(key, data, GENRE_TTL);
     return reply.send(data);
   });

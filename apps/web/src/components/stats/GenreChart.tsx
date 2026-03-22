@@ -10,8 +10,8 @@ import {
 } from "recharts";
 import { usePlaytimeByGenre } from "../../hooks/useStats.ts";
 
-export function GenreChart() {
-  const { data = [], isLoading } = usePlaytimeByGenre();
+export function GenreChart({ year }: { year: number }) {
+  const { data = [], isLoading } = usePlaytimeByGenre(year);
 
   if (isLoading) {
     return <div className="skeleton" style={{ height: "240px", borderRadius: "12px" }} />;

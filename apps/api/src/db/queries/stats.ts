@@ -191,8 +191,11 @@ export async function getPlayStreaks(userId: string): Promise<PlayStreaks> {
 
 export async function getWeeklyPlaytime(
   userId: string,
-  weeks = 12,
+  year: number,
 ): Promise<WeeklyPlaytime[]> {
+  const yearStart = `${year}-01-01T00:00:00.000Z`;
+  const yearEnd = `${year + 1}-01-01T00:00:00.000Z`;
+
   const rows = await db
     .select({
       week: sql<string>`TO_CHAR(DATE_TRUNC('week', ${playSessions.startedAt} AT TIME ZONE 'UTC'), 'IYYY-"W"IW')`,
@@ -203,7 +206,8 @@ export async function getWeeklyPlaytime(
     .where(
       and(
         eq(playSessions.userId, userId),
-        sql`${playSessions.startedAt} >= NOW() - INTERVAL '${sql.raw(String(weeks))} weeks'`,
+        sql`${playSessions.startedAt} >= ${yearStart}::timestamptz`,
+        sql`${playSessions.startedAt} < ${yearEnd}::timestamptz`,
       ),
     )
     .groupBy(
@@ -222,19 +226,27 @@ export async function getWeeklyPlaytime(
 
 export async function getPlaytimeByPlatform(
   userId: string,
+  year: number,
 ): Promise<{ platform: string; minutes: number; games: number }[]> {
-  // Use userGames.minutesPlayed (sourced from Steam playtime_forever) — playSessions
-  // is not populated with reliable per-session data from Steam's API.
+  const yearStart = `${year}-01-01T00:00:00.000Z`;
+  const yearEnd = `${year + 1}-01-01T00:00:00.000Z`;
+
   const rows = await db
     .select({
-      platform: userGames.platform,
-      minutes: sql<number>`SUM(${userGames.minutesPlayed})::int`,
-      games: sql<number>`COUNT(*)::int`,
+      platform: playSessions.platform,
+      minutes: sql<number>`SUM(${playSessions.minutes})::int`,
+      games: sql<number>`COUNT(DISTINCT ${playSessions.userGameId})::int`,
     })
-    .from(userGames)
-    .where(eq(userGames.userId, userId))
-    .groupBy(userGames.platform)
-    .orderBy(sql`SUM(${userGames.minutesPlayed}) DESC`);
+    .from(playSessions)
+    .where(
+      and(
+        eq(playSessions.userId, userId),
+        sql`${playSessions.startedAt} >= ${yearStart}::timestamptz`,
+        sql`${playSessions.startedAt} < ${yearEnd}::timestamptz`,
+      ),
+    )
+    .groupBy(playSessions.platform)
+    .orderBy(sql`SUM(${playSessions.minutes}) DESC`);
 
   return rows.map((r) => ({
     platform: r.platform,
@@ -247,20 +259,29 @@ export async function getPlaytimeByPlatform(
 
 export async function getPlaytimeByGenre(
   userId: string,
+  year: number,
 ): Promise<{ genre: string; minutes: number; games: number }[]> {
-  // Use userGames.minutesPlayed (sourced from Steam playtime_forever) — playSessions
-  // is not populated with reliable per-session data from Steam's API.
+  const yearStart = `${year}-01-01T00:00:00.000Z`;
+  const yearEnd = `${year + 1}-01-01T00:00:00.000Z`;
+
   const rows = await db
     .select({
       genre: sql<string>`UNNEST(${games.genres})`,
-      minutes: sql<number>`SUM(${userGames.minutesPlayed})::int`,
-      games: sql<number>`COUNT(DISTINCT ${userGames.id})::int`,
+      minutes: sql<number>`SUM(${playSessions.minutes})::int`,
+      games: sql<number>`COUNT(DISTINCT ${playSessions.userGameId})::int`,
     })
-    .from(userGames)
+    .from(playSessions)
+    .innerJoin(userGames, eq(playSessions.userGameId, userGames.id))
     .innerJoin(games, eq(userGames.gameId, games.id))
-    .where(eq(userGames.userId, userId))
+    .where(
+      and(
+        eq(playSessions.userId, userId),
+        sql`${playSessions.startedAt} >= ${yearStart}::timestamptz`,
+        sql`${playSessions.startedAt} < ${yearEnd}::timestamptz`,
+      ),
+    )
     .groupBy(sql`UNNEST(${games.genres})`)
-    .orderBy(sql`SUM(${userGames.minutesPlayed}) DESC`);
+    .orderBy(sql`SUM(${playSessions.minutes}) DESC`);
 
   return rows.map((r) => ({
     genre: r.genre,
