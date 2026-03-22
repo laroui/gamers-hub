@@ -35,9 +35,9 @@ export function useLibraryStatsOverview() {
 
 export function usePlayHeatmap(year: number) {
   return useQuery({
-    queryKey: ["sessions", "heatmap", year],
+    queryKey: ["stats", "heatmap", year],
     queryFn: async () => {
-      const { data } = await api.get<PlayHeatmap>("/sessions/heatmap", {
+      const { data } = await api.get<PlayHeatmap>("/stats/heatmap", {
         params: { year },
       });
       return data;
@@ -48,9 +48,9 @@ export function usePlayHeatmap(year: number) {
 
 export function usePlayStreaks() {
   return useQuery({
-    queryKey: ["sessions", "streaks"],
+    queryKey: ["stats", "streaks"],
     queryFn: async () => {
-      const { data } = await api.get<PlayStreaks>("/sessions/streaks");
+      const { data } = await api.get<PlayStreaks>("/stats/streaks");
       return data;
     },
     staleTime: 60 * 60 * 1000,
@@ -61,7 +61,7 @@ export function useWeeklyPlaytime(weeks = 12) {
   return useQuery({
     queryKey: ["stats", "weekly", weeks],
     queryFn: async () => {
-      const { data } = await api.get<WeeklyPlaytime[]>("/stats/playtime/weekly", {
+      const { data } = await api.get<WeeklyPlaytime[]>("/stats/weekly", {
         params: { weeks },
       });
       return data;
@@ -74,8 +74,8 @@ export function usePlaytimeByPlatform() {
   return useQuery({
     queryKey: ["stats", "platform"],
     queryFn: async () => {
-      const { data } = await api.get<PlaytimeByPlatform[]>("/stats/playtime/by-platform");
-      return data;
+      const { data } = await api.get<Omit<PlaytimeByPlatform, "hours">[]>("/stats/platforms");
+      return data.map((d) => ({ ...d, hours: Math.round(d.minutes / 60) }));
     },
     staleTime: 60 * 60 * 1000,
   });
@@ -85,8 +85,8 @@ export function usePlaytimeByGenre() {
   return useQuery({
     queryKey: ["stats", "genre"],
     queryFn: async () => {
-      const { data } = await api.get<PlaytimeByGenre[]>("/stats/playtime/by-genre");
-      return data;
+      const { data } = await api.get<Omit<PlaytimeByGenre, "hours">[]>("/stats/genres");
+      return data.map((d) => ({ ...d, hours: Math.round(d.minutes / 60) }));
     },
     staleTime: 60 * 60 * 1000,
   });
@@ -96,7 +96,9 @@ export function useGamingWrapped(year: number) {
   return useQuery({
     queryKey: ["stats", "wrapped", year],
     queryFn: async () => {
-      const { data } = await api.get<GamingWrapped>(`/stats/wrapped/${year}`);
+      const { data } = await api.get<GamingWrapped>("/stats/wrapped", {
+        params: { year },
+      });
       return data;
     },
     staleTime: 60 * 60 * 1000,
