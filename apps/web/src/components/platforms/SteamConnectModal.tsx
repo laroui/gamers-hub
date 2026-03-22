@@ -5,7 +5,6 @@ import { useToast } from "../../stores/toast.ts";
 import { useTriggerSync } from "../../hooks/usePlatforms.ts";
 
 export function SteamConnectModal({ onClose }: { onClose: () => void }) {
-  const [apiKey, setApiKey] = useState("");
   const [steamId, setSteamId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { success, error } = useToast();
@@ -13,17 +12,14 @@ export function SteamConnectModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync: triggerSync } = useTriggerSync();
 
   const handleConnect = async () => {
-    if (!apiKey.trim() || !steamId.trim()) {
-      error("Both Steam API Key and Steam ID are required");
+    if (!steamId.trim()) {
+      error("Steam ID is required");
       return;
     }
 
     setIsLoading(true);
     try {
-      await api.post("/auth/steam-key", {
-        apiKey: apiKey.trim(),
-        steamId: steamId.trim(),
-      });
+      await api.post("/auth/steam-key", { steamId: steamId.trim() });
 
       queryClient.invalidateQueries({ queryKey: ["platforms"] });
       success("Steam connected! Starting initial sync…");
@@ -36,7 +32,7 @@ export function SteamConnectModal({ onClose }: { onClose: () => void }) {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Invalid Steam API key or Steam ID";
+        "Could not connect Steam. Check your Steam ID and try again.";
       error(msg);
     } finally {
       setIsLoading(false);
@@ -85,91 +81,57 @@ export function SteamConnectModal({ onClose }: { onClose: () => void }) {
               Connect Steam
             </h3>
             <p style={{ fontSize: "12px", color: "var(--gh-text3)", margin: "2px 0 0" }}>
-              Steam uses an API key instead of OAuth
+              Enter your Steam 64-bit ID to link your library
             </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Steam API Key */}
-          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <span
-              style={{
-                fontSize: "11px",
-                color: "var(--gh-text3)",
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-              }}
-            >
-              Steam API Key
-            </span>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-              style={{
-                background: "var(--gh-surface)",
-                border: "1px solid var(--gh-border2)",
-                borderRadius: "8px",
-                padding: "10px 12px",
-                color: "var(--gh-text)",
-                fontFamily: "var(--font-body)",
-                fontSize: "13px",
-                outline: "none",
-                letterSpacing: "1px",
-              }}
-            />
-            <a
-              href="https://steamcommunity.com/dev/apikey"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: "11px", color: "var(--gh-cyan)" }}
-            >
-              Get your API key at steamcommunity.com/dev/apikey →
-            </a>
-          </label>
-
-          {/* Steam ID */}
-          <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <span
-              style={{
-                fontSize: "11px",
-                color: "var(--gh-text3)",
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-              }}
-            >
-              Steam 64-bit ID
-            </span>
-            <input
-              type="text"
-              value={steamId}
-              onChange={(e) => setSteamId(e.target.value)}
-              placeholder="76561198000000000"
-              style={{
-                background: "var(--gh-surface)",
-                border: "1px solid var(--gh-border2)",
-                borderRadius: "8px",
-                padding: "10px 12px",
-                color: "var(--gh-text)",
-                fontFamily: "var(--font-body)",
-                fontSize: "13px",
-                outline: "none",
-              }}
-            />
+        {/* Steam ID field */}
+        <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "20px" }}>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "var(--gh-text3)",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+            }}
+          >
+            Steam 64-bit ID
+          </span>
+          <input
+            type="text"
+            value={steamId}
+            onChange={(e) => setSteamId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleConnect(); }}
+            placeholder="76561198000000000"
+            autoFocus
+            style={{
+              background: "var(--gh-surface)",
+              border: "1px solid var(--gh-border2)",
+              borderRadius: "8px",
+              padding: "10px 12px",
+              color: "var(--gh-text)",
+              fontFamily: "var(--font-body)",
+              fontSize: "14px",
+              outline: "none",
+              letterSpacing: "1px",
+            }}
+          />
+          <span style={{ fontSize: "11px", color: "var(--gh-text3)" }}>
+            Find yours at{" "}
             <a
               href="https://steamid.io"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: "11px", color: "var(--gh-cyan)" }}
+              style={{ color: "var(--gh-cyan)" }}
             >
-              Find your Steam ID at steamid.io →
+              steamid.io
             </a>
-          </label>
-        </div>
+            {" "}— look up your profile URL and copy the SteamID64 value
+          </span>
+        </label>
 
-        <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
             onClick={onClose}
             style={{

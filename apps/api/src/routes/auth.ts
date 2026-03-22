@@ -60,7 +60,7 @@ const updateMeBody = z.object({
 });
 
 const steamKeyBody = z.object({
-  apiKey: z.string().min(1),
+  apiKey: z.string().min(1).optional(), // optional when STEAM_API_KEY is set server-side
   steamId: z.string().min(1),
 });
 
@@ -543,13 +543,23 @@ export async function authRoutes(server: FastifyInstance) {
           details: parsed.error.flatten().fieldErrors,
         });
       }
-      const { apiKey, steamId } = parsed.data;
+      const { apiKey: userApiKey, steamId } = parsed.data;
 
-      // Validate key via Steam API
+      // Resolve which API key to use: server-side env key takes priority,
+      // fall back to user-supplied key (legacy — still works for power users)
+      const resolvedKey = env.STEAM_API_KEY ?? userApiKey;
+      if (!resolvedKey) {
+        return reply.code(503).send({
+          error: "NoSteamKey",
+          message: "No Steam API key configured. Either set STEAM_API_KEY on the server or provide your own.",
+        });
+      }
+
+      // Validate key + Steam ID via Steam API
       let displayName: string;
       try {
         const steamRes = await fetch(
-          `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(apiKey)}&steamids=${encodeURIComponent(steamId)}`,
+          `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${encodeURIComponent(resolvedKey)}&steamids=${encodeURIComponent(steamId)}`,
         );
         if (!steamRes.ok) throw new Error(`Steam API returned ${steamRes.status}`);
         const data = (await steamRes.json()) as {
@@ -558,22 +568,22 @@ export async function authRoutes(server: FastifyInstance) {
         const player = data.response?.players?.[0];
         if (!player) {
           return reply.code(400).send({
-            error: "InvalidSteamKey",
-            message: "Invalid Steam API key or Steam ID",
+            error: "InvalidSteamId",
+            message: "Steam ID not found. Make sure you entered your 64-bit Steam ID.",
           });
         }
         displayName = player.personaname ?? steamId;
       } catch {
         return reply.code(400).send({
           error: "InvalidSteamKey",
-          message: "Invalid Steam API key or Steam ID",
+          message: "Could not verify Steam ID. Check the ID and try again.",
         });
       }
 
       await upsertConnection({
         userId: req.user.userId,
         platform: "steam",
-        accessToken: apiKey,
+        accessToken: resolvedKey,
         platformUid: steamId,
         displayName,
         syncStatus: "pending",
