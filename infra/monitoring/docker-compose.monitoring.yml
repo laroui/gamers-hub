@@ -1,0 +1,51 @@
+version: "3.9"
+
+# ============================================================
+#  Optional monitoring stack
+#  Usage: docker compose -f docker-compose.yml \
+#                        -f docker-compose.prod.yml \
+#                        -f infra/monitoring/docker-compose.monitoring.yml up -d
+# ============================================================
+
+networks:
+  gamers-hub:
+    external: true
+
+volumes:
+  grafana_data:
+  loki_data:
+
+services:
+  grafana:
+    image: grafana/grafana:10-ubuntu
+    container_name: gh_grafana
+    restart: unless-stopped
+    networks: [gamers-hub]
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD:-changeme}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: gh_loki
+    restart: unless-stopped
+    networks: [gamers-hub]
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: gh_promtail
+    restart: unless-stopped
+    networks: [gamers-hub]
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml

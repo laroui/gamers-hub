@@ -199,7 +199,7 @@ export async function authRoutes(server: FastifyInstance) {
 
   // ── POST /refresh ─────────────────────────────────────────
   server.post("/refresh", {
-    config: { rateLimit: isTest ? false : { max: 30, timeWindow: "1 hour" } },
+    config: { rateLimit: isTest ? false : { max: 500, timeWindow: "15 minutes" } },
     handler: async (req, reply) => {
       const token = req.cookies.refreshToken;
       if (!token) {

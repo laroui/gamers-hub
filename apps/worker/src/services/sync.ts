@@ -7,9 +7,11 @@ import {
   upsertGame,
   upsertUserGame,
   bulkInsertSessions,
+  bulkInsertAchievements,
   getConnection,
   upsertConnection,
   updateSyncStatus,
+  getGameById,
 } from "../db/queries.js";
 
 // ── Progress helper ───────────────────────────────────────────
@@ -98,7 +100,31 @@ export async function syncPlatform(job: Job<SyncJobPayload>): Promise<void> {
         });
       }
 
-      // Upsert user_game entry (GREATEST upsert — never decreases playtime)
+      // Metadata enrichment (Lazy resolution of covers/screenshots)
+      const fullGame = await getGameById(game.id);
+      if (fullGame && (!fullGame.coverUrl || fullGame.screenshotUrls.length === 0)) {
+        try {
+          const enrichment = await import("./cover.js").then(m => m.enrichGame({
+            id: fullGame.id,
+            title: fullGame.title,
+            coverUrl: fullGame.coverUrl,
+            igdbId: fullGame.igdbId ?? null,
+            steamAppId: rawGame.steamAppId ?? null,
+          }));
+
+          if (enrichment) {
+            await upsertGame({
+              ...fullGame,
+              ...enrichment,
+              steamAppId: rawGame.steamAppId ?? null,
+            });
+          }
+        } catch {
+          // Non-fatal
+        }
+      }
+
+      // 1. Initial upsert to get userGameId
       const userGameId = await upsertUserGame(userId, game.id, {
         platform,
         platformGameId: rawGame.platformGameId,
@@ -107,6 +133,53 @@ export async function syncPlatform(job: Job<SyncJobPayload>): Promise<void> {
         achievementsEarned: rawGame.achievementsEarned ?? 0,
         achievementsTotal: rawGame.achievementsTotal ?? 0,
       });
+
+      // ── Real Player Data Sync (Achievements & Stats) ─────────────────
+      // We sync full details for:
+      // - Recently played games (played in last 3 months)
+      // - Games where we don't have achievements yet
+      // - If forceDeep is requested in the job payload
+      const shouldDeepSync = 
+        job.data.forceDeep ||
+        (rawGame.lastPlayedAt && new Date(rawGame.lastPlayedAt).getTime() > Date.now() - 90 * 24 * 60 * 60 * 1000) ||
+        (i % 20 === 0); // Slow backfill: 5% of games each sync
+
+      let stats: Record<string, any> | undefined;
+      let earnedCount = 0;
+      let totalCount = 0;
+
+      if (shouldDeepSync) {
+        try {
+          // Fetch stats (platform specific)
+          if (adapter.getPlayerStats) {
+             stats = await adapter.getPlayerStats(accessToken, rawGame.platformGameId);
+          }
+
+          // Fetch and bulk insert achievements
+          const rawAchievements = await adapter.getAchievements(accessToken, rawGame.platformGameId);
+          if (rawAchievements.length > 0) {
+              await bulkInsertAchievements(userGameId, rawAchievements);
+              totalCount = rawAchievements.length;
+              earnedCount = rawAchievements.filter(a => !!a.earnedAt).length;
+          }
+        } catch (err) {
+          console.error(`      ⚠️ Deep sync failed for ${rawGame.title}:`, err);
+        }
+      }
+
+      // If we got stats OR achievements, update the userGame record one last time
+      if (stats || totalCount > 0) {
+        const completionPct = totalCount > 0 ? (earnedCount / totalCount) * 100 : 0;
+        
+        await upsertUserGame(userId, game.id, {
+          platform,
+          platformGameId: rawGame.platformGameId,
+          stats,
+          achievementsEarned: totalCount > 0 ? earnedCount : undefined,
+          achievementsTotal: totalCount > 0 ? totalCount : undefined,
+          completionPct,
+        });
+      }
 
       platformGameIdToUserGameId.set(rawGame.platformGameId, userGameId);
 

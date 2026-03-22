@@ -21,16 +21,11 @@ export function CompletionRing({ pct, size = 140, strokeWidth = 10 }: Completion
 
   useEffect(() => {
     const el = progressRef.current;
-    if (!el) return;
-
     const targetOffset = circumference - (pct / 100) * circumference;
 
-    el.style.strokeDashoffset = String(circumference);
-    el.style.transition = "none";
-
-    void el.getBoundingClientRect();
-    el.style.transition = "stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)";
-    el.style.strokeDashoffset = String(targetOffset);
+    if (el) {
+      el.style.strokeDashoffset = String(targetOffset);
+    }
   }, [pct, circumference]);
 
   return (
@@ -42,8 +37,8 @@ export function CompletionRing({ pct, size = 140, strokeWidth = 10 }: Completion
           stroke="var(--gh-surface2)"
           strokeWidth={strokeWidth}
         />
+        {/* Glow Layer (Broad) */}
         <circle
-          ref={progressRef}
           cx={center} cy={center} r={radius}
           fill="none"
           stroke={color}
@@ -51,7 +46,59 @@ export function CompletionRing({ pct, size = 140, strokeWidth = 10 }: Completion
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference}
-          style={{ filter: pct > 0 ? `drop-shadow(0 0 6px ${color})` : "none" }}
+          ref={progressRef}
+          style={{ 
+            opacity: 0.4,
+            filter: "blur(12px)",
+            transition: "stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)"
+          }}
+        />
+        
+        {/* Glow Layer (Sharp) */}
+        <circle
+          cx={center} cy={center} r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference}
+          style={{ 
+            opacity: 0.6,
+            filter: "blur(3px)",
+            strokeDashoffset: circumference - (pct / 100) * circumference,
+            transition: "stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)"
+          }}
+        />
+
+        {/* Main Progress Stroke (Filament) */}
+        <circle
+          cx={center} cy={center} r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth / 2}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - (pct / 100) * circumference}
+          style={{ 
+            stroke: "white", // Center "filament" look
+            opacity: 0.8,
+            transition: "stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)"
+          }}
+        />
+
+        {/* Outer Stroke to reinforce base color */}
+        <circle
+          cx={center} cy={center} r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - (pct / 100) * circumference}
+          style={{ 
+            transition: "stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)"
+          }}
         />
       </svg>
 

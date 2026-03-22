@@ -54,6 +54,7 @@ export interface Game {
   releaseYear: number | null;
   metacritic: number | null;
   description: string | null;
+  screenshotUrls: string[];
 }
 
 // ── User Game (library entry) ─────────────────────────────────
@@ -73,6 +74,7 @@ export interface UserGame {
   userRating: number | null;
   userNotes: string | null;
   addedAt: string;
+  stats?: Record<string, any>;
 }
 
 // ── Play Session ──────────────────────────────────────────────
@@ -100,6 +102,7 @@ export interface Achievement {
   rarityPct: number | null;
   points: number | null;
   isEarned: boolean;
+  metadata?: Record<string, any>;
 }
 
 // ── Library Stats ─────────────────────────────────────────────
@@ -168,6 +171,7 @@ export interface SyncJobPayload {
   userId: string;
   platform: PlatformId;
   triggeredBy: "manual" | "scheduled" | "connect";
+  forceDeep?: boolean;
 }
 
 export interface SyncJobProgress {

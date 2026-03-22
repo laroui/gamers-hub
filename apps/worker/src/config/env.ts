@@ -23,6 +23,18 @@ const schema = z.object({
   SYNC_JOB_TIMEOUT_MS: z.coerce.number().default(120000),
   LOG_LEVEL: z.string().default("info"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+
+  // MinIO
+  MINIO_ENDPOINT: z.string().default("localhost"),
+  MINIO_PORT: z.coerce.number().default(9000),
+  MINIO_USE_SSL: z.preprocess((v) => v === "true" || v === "1", z.boolean()).default(false),
+  MINIO_ACCESS_KEY: z.string().default("minioadmin"),
+  MINIO_SECRET_KEY: z.string().default("minioadmin_changeme"),
+  MINIO_BUCKET_COVERS: z.string().default("game-covers"),
+
+  // IGDB
+  IGDB_CLIENT_ID: z.string().optional(),
+  IGDB_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

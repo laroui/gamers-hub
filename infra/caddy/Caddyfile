@@ -1,0 +1,26 @@
+# Replace your-domain.com with your actual domain
+# Caddy handles Let's Encrypt automatically
+
+your-domain.com {
+    # Serve the web app
+    reverse_proxy web:80
+
+    # Proxy API
+    handle /api/* {
+        reverse_proxy api:3000
+    }
+
+    # Proxy MinIO covers
+    handle /covers/* {
+        uri strip_prefix /covers
+        reverse_proxy minio:9000
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

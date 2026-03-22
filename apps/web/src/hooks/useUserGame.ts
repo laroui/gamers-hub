@@ -6,7 +6,7 @@ export function useUserGame(userGameId: string) {
   return useQuery({
     queryKey: ["library", "game", userGameId],
     queryFn: async () => {
-      const { data } = await api.get<UserGame>(`/library/${userGameId}`);
+      const { data } = await api.get<UserGame>(`/library/games/${userGameId}`);
       return data;
     },
     enabled: !!userGameId,

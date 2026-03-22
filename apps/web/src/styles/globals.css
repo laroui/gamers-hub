@@ -240,4 +240,64 @@
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+  /* ── Premium Design System ────────────────────────── */
+  .gh-card {
+    background: rgba(45, 45, 60, 0.4);
+    backdrop-filter: blur(24px) saturate(180%) contrast(90%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%) contrast(90%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 20px 40px -10px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .gh-card-hover:hover {
+    transform: translateY(-8px) scale(1.02);
+    background: rgba(60, 60, 80, 0.5);
+    border-color: rgba(0, 229, 255, 0.4);
+    box-shadow: 
+      0 0 0 1px rgba(0, 229, 255, 0.2),
+      0 20px 60px -10px rgba(0, 0, 0, 0.6);
+  }
+
+  .gh-hero-blur {
+    position: absolute;
+    top: -100px;
+    left: -100px;
+    right: -100px;
+    height: 600px;
+    filter: blur(120px) saturate(2);
+    opacity: 0.4;
+    z-index: -1;
+    pointer-events: none;
+    transform: translateZ(0); /* Hardware acceleration */
+  }
+
+  /* Specific card types */
+  .badge-playing {
+    background: rgba(0, 230, 118, 0.2);
+    border: 1px solid var(--gh-green);
+    color: var(--gh-green);
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.3);
+  }
+
+  .badge-completed {
+    background: rgba(0, 229, 255, 0.2);
+    border: 1px solid var(--gh-cyan);
+    color: var(--gh-cyan);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  }
+}
+
+/* ── Capacitor safe areas ────────────────────────────────────── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .main-content {
+    padding-top: env(safe-area-inset-top);
+  }
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

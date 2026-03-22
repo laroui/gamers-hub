@@ -26,4 +26,5 @@ export interface PlatformAdapter {
 
   // Per-game detail (called after getOwnedGames for enrichment)
   getAchievements(accessToken: string, platformGameId: string): Promise<RawAchievement[]>;
+  getPlayerStats?(accessToken: string, platformGameId: string): Promise<Record<string, any>>;
 }

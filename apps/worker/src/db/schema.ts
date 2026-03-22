@@ -1,17 +1,18 @@
-// Inline schema — mirrors apps/api/src/db/schema.ts exactly.
-// We cannot import from apps/api because that would transitively load the API's
-// env validation (which requires JWT_SECRET etc. not present in the worker env).
 import {
   pgTable,
   uuid,
   text,
   integer,
   timestamp,
+  boolean,
   real,
   uniqueIndex,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
+// ── Users ─────────────────────────────────────────────────────
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").unique().notNull(),
@@ -22,6 +23,7 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ── Platform Connections ──────────────────────────────────────
 export const platformConnections = pgTable(
   "platform_connections",
   {
@@ -44,6 +46,7 @@ export const platformConnections = pgTable(
   }),
 );
 
+// ── Games (global catalog) ────────────────────────────────────
 export const games = pgTable(
   "games",
   {
@@ -58,6 +61,7 @@ export const games = pgTable(
     releaseYear: integer("release_year"),
     metacritic: integer("metacritic"),
     description: text("description"),
+    screenshotUrls: text("screenshot_urls").array().default([]).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -65,6 +69,7 @@ export const games = pgTable(
   }),
 );
 
+// ── User Games (library) ──────────────────────────────────────
 export const userGames = pgTable(
   "user_games",
   {
@@ -85,6 +90,7 @@ export const userGames = pgTable(
     achievementsTotal: integer("achievements_total").default(0).notNull(),
     userRating: integer("user_rating"),
     userNotes: text("user_notes"),
+    stats: jsonb("stats").default({}).notNull(),
     addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -98,6 +104,7 @@ export const userGames = pgTable(
   }),
 );
 
+// ── Play Sessions ─────────────────────────────────────────────
 export const playSessions = pgTable(
   "play_sessions",
   {
@@ -120,6 +127,7 @@ export const playSessions = pgTable(
   }),
 );
 
+// ── Achievements ──────────────────────────────────────────────
 export const achievements = pgTable(
   "achievements",
   {
@@ -134,8 +142,36 @@ export const achievements = pgTable(
     earnedAt: timestamp("earned_at", { withTimezone: true }),
     rarityPct: real("rarity_pct"),
     points: integer("points"),
+    metadata: jsonb("metadata").default({}).notNull(),
   },
   (t) => ({
     userGameIdIdx: index("achievements_user_game_id_idx").on(t.userGameId),
   }),
 );
+
+// ── Refresh Token Blacklist ────────────────────────────────────
+export const tokenBlacklist = pgTable("token_blacklist", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tokenHash: text("token_hash").unique().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Relations ─────────────────────────────────────────────────
+export const usersRelations = relations(users, ({ many }) => ({
+  platformConnections: many(platformConnections),
+  userGames: many(userGames),
+  playSessions: many(playSessions),
+}));
+
+export const userGamesRelations = relations(userGames, ({ one, many }) => ({
+  user: one(users, { fields: [userGames.userId], references: [users.id] }),
+  game: one(games, { fields: [userGames.gameId], references: [games.id] }),
+  playSessions: many(playSessions),
+  achievements: many(achievements),
+}));
+
+export const playSessionsRelations = relations(playSessions, ({ one }) => ({
+  user: one(users, { fields: [playSessions.userId], references: [users.id] }),
+  userGame: one(userGames, { fields: [playSessions.userGameId], references: [userGames.id] }),
+}));

@@ -1,0 +1,47 @@
+version: "3.9"
+
+# ============================================================
+#  PRODUCTION OVERRIDE
+#  Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+  postgres:
+    # In production: don't expose DB port externally
+    ports: !reset []
+
+  redis:
+    # In production: don't expose Redis port externally
+    ports: !reset []
+
+  minio:
+    # Keep MinIO S3 API accessible but not console
+    ports:
+      - "9000:9000"
+      # Console (9001) not exposed in production
+
+  api:
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
+
+  worker:
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
+
+  web:
+    environment:
+      NODE_ENV: production

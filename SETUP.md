@@ -354,3 +354,67 @@ docker compose run --rm minio-init
 Check the browser console. If it's a CORS error, make sure the API
 is running (`pnpm dev --filter api`) and `APP_URL` in `.env` matches
 your frontend URL exactly.
+
+---
+
+## Desktop App Prerequisites (Tauri)
+
+Install Rust:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+rustup target add aarch64-apple-darwin  # macOS ARM
+```
+
+macOS additional deps:
+```bash
+xcode-select --install
+```
+
+Ubuntu/Debian additional deps:
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+```
+
+Windows: install Microsoft Visual Studio C++ build tools.
+
+---
+
+## GitHub Actions Secrets (for automated deploy)
+
+To enable the CI/CD deploy step in `.github/workflows/ci.yml`,
+add these secrets to your GitHub repository:
+
+Go to: **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Value |
+|--------|-------|
+| `SERVER_HOST` | Your server's IP address or domain |
+| `SERVER_USER` | SSH username (e.g. `ubuntu`, `root`, `gamershub`) |
+| `SERVER_SSH_KEY` | Your private SSH key (the full content of `~/.ssh/id_rsa`) |
+| `SERVER_PORT` | SSH port (optional, defaults to 22) |
+
+**Generate an SSH key for deployment:**
+```bash
+ssh-keygen -t ed25519 -C "gamershub-deploy" -f ~/.ssh/gamershub_deploy
+# Copy public key to server:
+ssh-copy-id -i ~/.ssh/gamershub_deploy.pub user@your-server
+# Copy private key to GitHub secret:
+cat ~/.ssh/gamershub_deploy
+```
+
+## Production Monitoring
+
+Access Grafana at `http://your-server:3001` after starting the monitoring stack.
+Default credentials: admin / (set `GRAFANA_PASSWORD` in `.env`).
+
+## Production HTTPS with Caddy (alternative to Nginx)
+
+Edit `infra/caddy/Caddyfile` — replace `your-domain.com` with your actual domain.
+Caddy handles Let's Encrypt TLS automatically.
+
+```bash
+docker pull caddy:latest
+# Edit infra/caddy/Caddyfile first, then include it in your compose command
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```

@@ -24,6 +24,7 @@ function toUserGame(row: RawUserGameRow): UserGame {
       releaseYear: row.game.releaseYear,
       metacritic: row.game.metacritic,
       description: row.game.description,
+      screenshotUrls: row.game.screenshotUrls ?? [],
     },
     platform: row.platform as PlatformId,
     platformGameId: row.platformGameId,
@@ -37,6 +38,7 @@ function toUserGame(row: RawUserGameRow): UserGame {
     userRating: row.userRating,
     userNotes: row.userNotes,
     addedAt: row.addedAt.toISOString(),
+    stats: row.stats as Record<string, any>,
   };
 }
 

@@ -22,7 +22,12 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "docker:reset": "docker compose down -v && docker compose up -d"
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "dev:desktop": "pnpm --filter web exec tauri dev",
+    "build:desktop": "pnpm --filter web run build && pnpm --filter web exec tauri build",
+    "build:mobile": "pnpm --filter web run build && cd apps/web && pnpm cap sync",
+    "open:ios": "cd apps/web && pnpm cap open ios",
+    "open:android": "cd apps/web && pnpm cap open android"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

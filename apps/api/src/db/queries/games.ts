@@ -19,6 +19,7 @@ function toGame(row: RawGameRow): Game {
     releaseYear: row.releaseYear,
     metacritic: row.metacritic,
     description: row.description,
+    screenshotUrls: row.screenshotUrls ?? [],
   };
 }
 
@@ -75,6 +76,7 @@ export async function upsertGame(data: {
   releaseYear?: number | null;
   metacritic?: number | null;
   description?: string | null;
+  screenshotUrls?: string[];
 }): Promise<Game> {
   const [row] = await db
     .insert(games)
@@ -89,6 +91,7 @@ export async function upsertGame(data: {
       releaseYear: data.releaseYear ?? null,
       metacritic: data.metacritic ?? null,
       description: data.description ?? null,
+      screenshotUrls: data.screenshotUrls ?? [],
     })
     .onConflictDoUpdate({
       target: games.igdbId,
@@ -102,6 +105,7 @@ export async function upsertGame(data: {
         releaseYear: sql`COALESCE(EXCLUDED.release_year, games.release_year)`,
         metacritic: sql`COALESCE(EXCLUDED.metacritic, games.metacritic)`,
         description: sql`COALESCE(EXCLUDED.description, games.description)`,
+        screenshotUrls: sql`CASE WHEN array_length(EXCLUDED.screenshot_urls, 1) > 0 THEN EXCLUDED.screenshot_urls ELSE games.screenshot_urls END`,
         steamAppId: sql`COALESCE(EXCLUDED.steam_app_id, games.steam_app_id)`,
       },
     })

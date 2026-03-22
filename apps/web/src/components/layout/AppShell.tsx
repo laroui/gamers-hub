@@ -9,7 +9,7 @@ export function AppShell() {
   const isMobile = useIsMobile();
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--gh-bg)" }}>
       {!isMobile && <Sidebar />}
       <div
         style={{
@@ -18,11 +18,21 @@ export function AppShell() {
           display: "flex",
           flexDirection: "column",
           minHeight: "100vh",
-          paddingBottom: isMobile ? "64px" : 0,
+          width: isMobile ? "100%" : `calc(100% - var(--sidebar-w))`,
+          paddingBottom: isMobile ? "80px" : 0,
         }}
       >
         <Topbar />
-        <main className="page-enter" style={{ flex: 1, padding: isMobile ? "16px" : "28px", overflowY: "auto" }}>
+        <main
+          className="page-enter main-content"
+          style={{
+            flex: 1,
+            padding: isMobile ? "16px" : "32px",
+            width: "100%",
+            maxWidth: "1600px",
+            margin: "0 auto",
+          }}
+        >
           <Outlet />
         </main>
       </div>

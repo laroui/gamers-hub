@@ -180,6 +180,7 @@ export async function gamesRoutes(server: FastifyInstance) {
           rarityPct: a.rarityPct,
           points: a.points,
           isEarned: a.earnedAt !== null,
+          metadata: a.metadata as Record<string, any>,
         })),
       );
     },

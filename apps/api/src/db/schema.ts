@@ -8,6 +8,7 @@ import {
   real,
   uniqueIndex,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -60,6 +61,7 @@ export const games = pgTable(
     releaseYear: integer("release_year"),
     metacritic: integer("metacritic"),
     description: text("description"),
+    screenshotUrls: text("screenshot_urls").array().default([]).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -88,6 +90,7 @@ export const userGames = pgTable(
     achievementsTotal: integer("achievements_total").default(0).notNull(),
     userRating: integer("user_rating"),
     userNotes: text("user_notes"),
+    stats: jsonb("stats").default({}).notNull(),
     addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -139,6 +142,7 @@ export const achievements = pgTable(
     earnedAt: timestamp("earned_at", { withTimezone: true }),
     rarityPct: real("rarity_pct"),
     points: integer("points"),
+    metadata: jsonb("metadata").default({}).notNull(),
   },
   (t) => ({
     userGameIdIdx: index("achievements_user_game_id_idx").on(t.userGameId),

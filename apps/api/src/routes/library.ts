@@ -121,6 +121,20 @@ export async function libraryRoutes(server: FastifyInstance) {
       return reply.send(games);
     },
   });
+  
+  // ── GET /api/v1/library/games/:id ───────────────────────────
+
+  server.get<{ Params: { id: string } }>("/games/:id", {
+    preHandler: authMiddleware,
+    handler: async (req, reply) => {
+      const { userId } = req.user;
+      const userGame = await getUserGameById(userId, req.params.id);
+      if (!userGame) {
+        return reply.code(404).send({ error: "NotFound", message: "Game not found in library" });
+      }
+      return reply.send(userGame);
+    },
+  });
 
   // ── POST /api/v1/library/games ────────────────────────────────
 

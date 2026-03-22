@@ -44,6 +44,7 @@ function igdbToGame(raw: IgdbGame): Game {
     metacritic:
       raw.aggregated_rating != null ? Math.round(raw.aggregated_rating) || null : null,
     description: raw.summary ?? null,
+    screenshotUrls: raw.screenshots?.map((s) => fixIgdbUrl(s.url, "t_screenshot_big")) ?? [],
   };
 }
 

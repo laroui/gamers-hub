@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./lib/auth/AuthProvider.tsx";
 import { ProtectedRoute } from "./lib/auth/ProtectedRoute.tsx";
 import { AppShell } from "./components/layout/AppShell.tsx";
+import { useTauriEvents } from "./hooks/useTauriEvents.ts";
 
 // Pages — implemented in B7+
 import { LoginPage } from "./pages/LoginPage.tsx";
@@ -13,6 +14,8 @@ import { StatsPage } from "./pages/StatsPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
 
 export function App() {
+  useTauriEvents();
+
   return (
     <AuthProvider>
       <Routes>

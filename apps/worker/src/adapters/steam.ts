@@ -88,33 +88,82 @@ export class SteamAdapter implements PlatformAdapter {
   }
 
   async getAchievements(_accessToken: string, platformGameId: string): Promise<RawAchievement[]> {
-    const url =
+    // 1. Get player's progress (Earned status + Unlock time)
+    const progressUrl =
       `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/` +
+      `?appid=${platformGameId}&key=${this.apiKey}&steamid=${this.steamId}&l=english&format=json`;
+
+    // 2. Get game schema (Names, Descriptions, Icons)
+    const schemaUrl =
+      `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/` +
+      `?appid=${platformGameId}&key=${this.apiKey}&l=english&format=json`;
+
+    try {
+      // 1. Fetch both in parallel
+      const [pRes, sRes] = await Promise.allSettled([
+        fetch(progressUrl),
+        fetch(schemaUrl)
+      ]);
+
+      let playerAchievements: any[] = [];
+      let schemaAchievements: any[] = [];
+
+      // Parse player achievements if success
+      if (pRes.status === "fulfilled" && pRes.value.ok) {
+        const pData = await pRes.value.json() as any;
+        playerAchievements = pData.playerstats?.achievements ?? [];
+        console.log(`      ✔️ Player achievements for ${platformGameId}: ${playerAchievements.length}`);
+      } else {
+        console.warn(`      ⚠️ Player achievements fetch failed for ${platformGameId}:`, pRes.status === "fulfilled" ? pRes.value.status : pRes.reason);
+      }
+
+      // Parse schema achievements if success
+      if (sRes.status === "fulfilled" && sRes.value.ok) {
+        const sData = await sRes.value.json() as any;
+        schemaAchievements = sData.game?.availableGameStats?.achievements ?? [];
+        console.log(`      ✔️ Schema achievements for ${platformGameId}: ${schemaAchievements.length}`);
+      } else {
+        console.warn(`      ⚠️ Schema achievements fetch failed for ${platformGameId}:`, sRes.status === "fulfilled" ? sRes.value.status : sRes.reason);
+      }
+
+      if (schemaAchievements.length === 0 && playerAchievements.length === 0) return [];
+
+      const playerMap = new Map<string, any>(playerAchievements.map((a: any) => [a.apiname, a]));
+
+      return schemaAchievements.map((s: any) => {
+        const progress = playerMap.get(s.name);
+        return {
+          platformId: s.name,
+          title: s.displayName ?? s.name,
+          description: s.description ?? null,
+          iconUrl: s.icon ?? null,
+          earnedAt: progress?.achieved === 1 ? new Date(progress.unlocktime * 1000) : undefined,
+          rarityPct: s.defaultvalue === 0 ? undefined : s.defaultvalue, // Valve sometimes puts rarity here or elsewhere
+        };
+      });
+    } catch (err) {
+      console.error(`      ❌ Steam Achievements fetch failed for ${platformGameId}:`, err);
+      return [];
+    }
+  }
+
+  async getPlayerStats(_accessToken: string, platformGameId: string): Promise<Record<string, any>> {
+    const url =
+      `https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v0002/` +
       `?appid=${platformGameId}&key=${this.apiKey}&steamid=${this.steamId}&format=json`;
 
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Steam API error ${res.status} for GetPlayerAchievements`);
-
-    const data = (await res.json()) as {
-      playerstats?: {
-        error?: string;
-        success?: boolean;
-        achievements?: Array<{
-          apiname: string;
-          achieved: number;
-          unlocktime: number;
-          name?: string;
-        }>;
-      };
-    };
-
-    const ps = data.playerstats;
-    if (!ps || ps.error || !ps.success || !ps.achievements) return [];
-
-    return ps.achievements.map((a) => ({
-      platformId: a.apiname,
-      title: a.name ?? a.apiname,
-      earnedAt: a.achieved === 1 ? new Date(a.unlocktime * 1000) : undefined,
-    }));
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return {};
+      const data = (await res.json()) as any;
+      const stats = data.playerstats?.stats ?? [];
+      const statsMap: Record<string, any> = {};
+      for (const s of stats) {
+        statsMap[s.name] = s.value;
+      }
+      return statsMap;
+    } catch {
+      return {};
+    }
   }
 }
