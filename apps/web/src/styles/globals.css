@@ -230,4 +230,9 @@
   }
 
   .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+  @keyframes syncSweep {
+    0%   { left: -60%; }
+    100% { left: 100%; }
+  }
 }
