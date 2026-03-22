@@ -17,8 +17,16 @@
 | B8 | Library Page | ✅ `46e1ec6` |
 | B9 | Game Detail Page | ✅ `9f7caa5` |
 | B10 | Platforms Page | ✅ `bb05698` |
+| Fix | Steam OpenID + server-side key + disconnect bug | ✅ `cd5749a` |
 
 API: 211/211 tests passing. Worker: 33/33. Frontend: typecheck clean.
+
+### Post-B10 fixes (commit `cd5749a`)
+- **Steam connect** now uses Steam OpenID popup ("Sign in through Steam") — no Steam API key required from users
+- **Server-side `STEAM_API_KEY`** set in `.env` — required for both connect and library sync
+- **`STEAM_OPENID_CALLBACK`** set to `http://localhost:3000/api/v1/auth/steam-openid/callback`
+- `DELETE /platforms/:platform` endpoint corrected (was calling `/disconnect` suffix)
+- `GET /platforms` filtered to connected-only on frontend
 
 ---
 
