@@ -53,10 +53,12 @@ export function PlatformsPage() {
       const platformName = PLATFORMS.find((p) => p.id === platformId)?.name ?? platformId;
       info(`Opening ${platformName} login…`);
 
-      const handler = async (event: MessageEvent) => {
+      const handler = (event: MessageEvent) => {
         // Accept messages from the popup — in dev the API (port 3000) differs from
         // the frontend origin (port 5173), so we can't enforce same-origin here.
         // We verify the payload shape (success + matching platform) instead.
+        // NOTE: handler must be synchronous — an async handler returns a Promise (truthy)
+        // which Chrome extension message plumbing misinterprets as "wants async response".
         if (
           (event.data as { success?: boolean; platform?: string } | null)?.success &&
           (event.data as { success?: boolean; platform?: string }).platform === platformId
@@ -64,9 +66,7 @@ export function PlatformsPage() {
           window.removeEventListener("message", handler);
           popup.close();
           success(`${platformName} connected! Starting sync…`);
-          try {
-            await triggerSync(platformId);
-          } catch { /* non-fatal */ }
+          void triggerSync(platformId).catch(() => { /* non-fatal */ });
         }
       };
 

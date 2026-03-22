@@ -23,7 +23,7 @@ export class SteamAdapter implements PlatformAdapter {
 
   async getOwnedGames(): Promise<RawGame[]> {
     const url =
-      `http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/` +
+      `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/` +
       `?key=${this.apiKey}&steamid=${this.steamId}&include_appinfo=1&include_played_free_games=1&format=json`;
 
     const res = await fetch(url);
@@ -56,7 +56,7 @@ export class SteamAdapter implements PlatformAdapter {
 
   async getRecentGames(_accessToken: string, limit = 50): Promise<RawGame[]> {
     const url =
-      `http://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/` +
+      `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/` +
       `?key=${this.apiKey}&steamid=${this.steamId}&count=${limit}&format=json`;
 
     const res = await fetch(url);
@@ -89,7 +89,7 @@ export class SteamAdapter implements PlatformAdapter {
 
   async getAchievements(_accessToken: string, platformGameId: string): Promise<RawAchievement[]> {
     const url =
-      `http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/` +
+      `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/` +
       `?appid=${platformGameId}&key=${this.apiKey}&steamid=${this.steamId}&format=json`;
 
     const res = await fetch(url);

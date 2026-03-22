@@ -1,7 +1,7 @@
 // Inline query functions — mirrors the B2 query functions the worker needs.
 // We cannot re-export from apps/api because that would transitively load the
 // API's env validation (which requires JWT_SECRET etc. not present in the worker env).
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { PlatformId } from "@gamers-hub/types";
 import { db } from "./client.js";
 import { games, userGames, playSessions, platformConnections } from "./schema.js";
@@ -203,6 +203,28 @@ export async function updateSyncStatus(
     .where(
       and(eq(platformConnections.userId, userId), eq(platformConnections.platform, platform)),
     );
+}
+
+// Remove userGames for a platform that are NOT in the given set of platformGameIds.
+// Called after a full sync to prune stale / seeded entries.
+// Guard: if keepIds is empty we skip — avoids wiping everything on an empty sync.
+export async function clearStaleUserGames(
+  userId: string,
+  platform: string,
+  keepPlatformGameIds: string[],
+): Promise<number> {
+  if (keepPlatformGameIds.length === 0) return 0;
+  const result = await db
+    .delete(userGames)
+    .where(
+      and(
+        eq(userGames.userId, userId),
+        eq(userGames.platform, platform),
+        notInArray(userGames.platformGameId, keepPlatformGameIds),
+      ),
+    )
+    .returning({ id: userGames.id });
+  return result.length;
 }
 
 export async function getAllConnectedPlatforms(): Promise<RawConnectionRow[]> {

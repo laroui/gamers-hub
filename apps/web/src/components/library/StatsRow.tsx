@@ -1,27 +1,6 @@
-import { useState, useEffect } from "react";
 import type { LibraryStats } from "@gamers-hub/types";
 import { useLibraryStats } from "../../hooks/useLibraryStats.ts";
-
-function useCountUp(target: number, duration = 800): number {
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (target === 0) {
-      setValue(0);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [target, duration]);
-
-  return value;
-}
+import { useCountUp } from "../../hooks/useCountUp.ts";
 
 interface StatCardDef {
   key: keyof Pick<LibraryStats, "totalGames" | "currentlyPlaying" | "completedGames" | "totalHours">;

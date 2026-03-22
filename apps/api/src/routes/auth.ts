@@ -589,6 +589,21 @@ export async function authRoutes(server: FastifyInstance) {
         syncStatus: "pending",
       });
 
+      // Enqueue initial sync via BullMQ
+      try {
+        const { Queue } = await import("bullmq");
+        const { getRedis } = await import("../db/redis.js");
+        const syncQueue = new Queue("platform-sync", { connection: getRedis() });
+        await syncQueue.add(
+          "sync",
+          { userId: req.user.userId, platform: "steam", triggeredBy: "connect" as const },
+          { jobId: `${req.user.userId}:steam:${Date.now()}` },
+        );
+        await syncQueue.close();
+      } catch {
+        // Non-fatal
+      }
+
       return reply.code(200).send({ connected: true, displayName });
     },
   });
@@ -717,6 +732,21 @@ export async function authRoutes(server: FastifyInstance) {
         displayName,
         syncStatus: "pending",
       });
+
+      // Enqueue initial sync via BullMQ
+      try {
+        const { Queue } = await import("bullmq");
+        const { getRedis } = await import("../db/redis.js");
+        const syncQueue = new Queue("platform-sync", { connection: getRedis() });
+        await syncQueue.add(
+          "sync",
+          { userId, platform: "steam", triggeredBy: "connect" as const },
+          { jobId: `${userId}:steam:${Date.now()}` },
+        );
+        await syncQueue.close();
+      } catch {
+        // Non-fatal
+      }
 
       return reply.type("text/html").code(200).send(oauthSuccessHtml("steam"));
     },
