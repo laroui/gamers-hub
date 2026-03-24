@@ -7,7 +7,10 @@ import { env } from "../config/env.js";
 async function runMigrations() {
   console.log("🔄 Running database migrations...");
 
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_URL.includes("neon.tech") ? { rejectUnauthorized: false } : false,
+  });
   const db = drizzle(pool);
 
   try {

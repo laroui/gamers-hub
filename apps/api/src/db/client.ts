@@ -5,7 +5,10 @@ import * as schema from "./schema.js";
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  max: 20,
+  ssl: env.DATABASE_URL.includes("neon.tech")
+    ? { rejectUnauthorized: false }
+    : false,
+  max: env.NODE_ENV === "production" ? 5 : 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });

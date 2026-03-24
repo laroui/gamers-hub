@@ -3,6 +3,12 @@ import { Pool } from "pg";
 import { env } from "../config/env.js";
 import * as schema from "./schema.js";
 
-const pool = new Pool({ connectionString: env.DATABASE_URL, max: 5 });
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  ssl: env.DATABASE_URL.includes("neon.tech")
+    ? { rejectUnauthorized: false }
+    : false,
+  max: 5,
+});
 
 export const db = drizzle(pool, { schema });

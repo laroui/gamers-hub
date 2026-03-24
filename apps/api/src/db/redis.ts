@@ -5,10 +5,12 @@ let redisClient: Redis | null = null;
 
 export function getRedis(): Redis {
   if (!redisClient) {
+    const isTLS = env.REDIS_URL.startsWith("rediss://");
     redisClient = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null, // required by BullMQ
       enableReadyCheck: false,
       lazyConnect: true,
+      tls: isTLS ? { rejectUnauthorized: false } : undefined,
     });
 
     redisClient.on("error", (err: Error) => {

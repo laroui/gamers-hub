@@ -19,7 +19,22 @@ export async function registerPlugins(server: AnyFastify) {
 
   // ── CORS ────────────────────────────────────────────────────
   await server.register(cors, {
-    origin: env.NODE_ENV === "development" ? true : [env.APP_URL],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = [
+        "http://localhost:5173",
+        "http://localhost:4173",
+        env.APP_URL,
+      ].filter(Boolean);
+      if (
+        allowed.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".railway.app")
+      ) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
