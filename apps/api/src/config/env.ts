@@ -33,6 +33,11 @@ const envSchema = z.object({
   // SteamGridDB
   STEAMGRIDDB_API_KEY: z.string().optional(),
 
+  // Google OAuth (optional — Google sign-in disabled if not set)
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
+
   // Platform keys (optional — features degrade gracefully)
   STEAM_API_KEY: z.string().optional(),
   STEAM_OPENID_CALLBACK: z.string().optional(), // defaults to http://localhost:{PORT}/api/v1/auth/steam-openid/callback

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "../db/client.js";
@@ -8,6 +8,7 @@ import { users } from "../db/schema.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { uploadBuffer } from "../services/storage.js";
 import { upsertConnection } from "../db/queries/platforms.js";
+import { getRedis } from "../db/redis.js";
 import {
   sha256,
   verifyRefreshToken,
@@ -69,11 +70,26 @@ const nintendoTokenBody = z.object({
   sessionToken: z.string().min(1),
 });
 
-// ── Helper: strip passwordHash from user ──────────────────────
+// ── Helper: strip sensitive fields from user ──────────────────
 
 function stripHash(user: typeof users.$inferSelect) {
-  const { passwordHash: _pw, ...safe } = user;
+  const { passwordHash: _pw, googleId: _gid, ...safe } = user;
   return safe;
+}
+
+// ── Google OAuth state (Redis) ────────────────────────────────
+
+const GOOGLE_STATE_TTL = 600; // 10 minutes
+
+async function storeGoogleState(state: string): Promise<void> {
+  const redis = getRedis();
+  await redis.set(`google:state:${state}`, "1", "EX", GOOGLE_STATE_TTL);
+}
+
+async function consumeGoogleState(state: string): Promise<boolean> {
+  const redis = getRedis();
+  const deleted = await redis.del(`google:state:${state}`);
+  return deleted > 0;
 }
 
 // ── Refresh cookie options ────────────────────────────────────
@@ -175,6 +191,13 @@ export async function authRoutes(server: FastifyInstance) {
         return reply.code(401).send({
           error: "InvalidCredentials",
           message: "Invalid email or password",
+        });
+      }
+
+      if (!user.passwordHash) {
+        return reply.code(401).send({
+          error: "GoogleAccount",
+          message: "This account uses Google sign-in. Please sign in with Google.",
         });
       }
 
@@ -706,6 +729,13 @@ export async function authRoutes(server: FastifyInstance) {
         return reply.code(404).send({ error: "NotFound", message: "User not found" });
       }
 
+      if (!user.passwordHash) {
+        return reply.code(400).send({
+          error: "NoPassword",
+          message: "This account uses Google sign-in and has no password to change.",
+        });
+      }
+
       const passwordValid = await bcrypt.compare(body.currentPassword, user.passwordHash);
       if (!passwordValid) {
         return reply.code(401).send({
@@ -842,6 +872,166 @@ export async function authRoutes(server: FastifyInstance) {
       }
 
       return reply.type("text/html").code(200).send(oauthSuccessHtml("steam"));
+    },
+  });
+
+  // ── GET /google ────────────────────────────────────────────
+  // Initiates Google OAuth sign-in / sign-up flow.
+  server.get("/google", {
+    config: { rateLimit: isTest ? false : { max: 20, timeWindow: "1 hour" } },
+    handler: async (_req, reply) => {
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        return reply.code(503).send({
+          error: "NotConfigured",
+          message: "Google sign-in is not configured on this server",
+        });
+      }
+
+      const state = randomUUID();
+      await storeGoogleState(state);
+
+      const redirectUri =
+        env.GOOGLE_REDIRECT_URI ??
+        `${env.APP_URL.replace(/\/$/, "")}/api/v1/auth/google/callback`;
+
+      const params = new URLSearchParams({
+        client_id: env.GOOGLE_CLIENT_ID,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: "openid email profile",
+        state,
+        access_type: "offline",
+        prompt: "select_account",
+      });
+
+      return reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    },
+  });
+
+  // ── GET /google/callback ───────────────────────────────────
+  server.get("/google/callback", {
+    handler: async (req, reply) => {
+      const query = req.query as Record<string, string>;
+      const { code, state, error } = query;
+
+      const appUrl = env.APP_URL.replace(/\/$/, "");
+
+      if (error) {
+        return reply.redirect(`${appUrl}/login?error=google_denied`);
+      }
+
+      if (!state || !code) {
+        return reply.redirect(`${appUrl}/login?error=google_failed`);
+      }
+
+      const stateValid = await consumeGoogleState(state);
+      if (!stateValid) {
+        return reply.redirect(`${appUrl}/login?error=google_failed`);
+      }
+
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        return reply.redirect(`${appUrl}/login?error=google_failed`);
+      }
+
+      const redirectUri =
+        env.GOOGLE_REDIRECT_URI ??
+        `${appUrl}/api/v1/auth/google/callback`;
+
+      // Exchange code for Google tokens
+      let googleAccessToken: string;
+      try {
+        const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code,
+            client_id: env.GOOGLE_CLIENT_ID,
+            client_secret: env.GOOGLE_CLIENT_SECRET,
+            redirect_uri: redirectUri,
+          }).toString(),
+        });
+        if (!tokenRes.ok) throw new Error(`Token exchange failed: ${tokenRes.status}`);
+        const tokenData = (await tokenRes.json()) as { access_token?: string };
+        if (!tokenData.access_token) throw new Error("No access token");
+        googleAccessToken = tokenData.access_token;
+      } catch {
+        return reply.redirect(`${appUrl}/login?error=google_failed`);
+      }
+
+      // Fetch Google user profile
+      let googleProfile: { id: string; email: string; name: string; picture?: string };
+      try {
+        const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: { Authorization: `Bearer ${googleAccessToken}` },
+        });
+        if (!profileRes.ok) throw new Error("Profile fetch failed");
+        googleProfile = (await profileRes.json()) as typeof googleProfile;
+        if (!googleProfile.id || !googleProfile.email) throw new Error("Missing profile data");
+      } catch {
+        return reply.redirect(`${appUrl}/login?error=google_failed`);
+      }
+
+      // Find existing user by google_id or email
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.googleId, googleProfile.id), eq(users.email, googleProfile.email)))
+        .limit(1);
+
+      let userId: string;
+      let userEmail: string;
+
+      if (existingUser) {
+        // Link Google ID if not already linked
+        if (!existingUser.googleId) {
+          await db
+            .update(users)
+            .set({ googleId: googleProfile.id, updatedAt: new Date() })
+            .where(eq(users.id, existingUser.id));
+        }
+        userId = existingUser.id;
+        userEmail = existingUser.email;
+      } else {
+        // Create new user — generate a username from email prefix
+        const base = googleProfile.email
+          .split("@")[0]
+          .replace(/[^a-zA-Z0-9_]/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 15) || "user";
+        const suffix = Math.floor(Math.random() * 9000) + 1000;
+        const username = `${base}${suffix}`;
+
+        const avatarUrl = googleProfile.picture ?? null;
+
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            email: googleProfile.email,
+            username,
+            passwordHash: null,
+            googleId: googleProfile.id,
+            avatarUrl,
+          })
+          .returning();
+
+        if (!newUser) {
+          return reply.redirect(`${appUrl}/login?error=google_failed`);
+        }
+
+        userId = newUser.id;
+        userEmail = newUser.email;
+      }
+
+      // Issue JWT pair + set refresh cookie
+      await revokeAllRefreshTokens(userId);
+      const { accessToken, refreshToken } = await issueTokenPair(server, userId, userEmail);
+      await storeRefreshToken(userId, sha256(refreshToken));
+
+      reply.setCookie("refreshToken", refreshToken, refreshCookieOptions(env.NODE_ENV === "production"));
+
+      // Redirect to frontend callback page with access token
+      return reply.redirect(`${appUrl}/auth/callback?token=${encodeURIComponent(accessToken)}`);
     },
   });
 }

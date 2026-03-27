@@ -21,6 +21,7 @@ interface AuthContextValue extends AuthState {
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
 }
 
 // ── Context ───────────────────────────────────────────────────
@@ -90,8 +91,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* silent */ }
   }, []);
 
+  const loginWithToken = useCallback(async (token: string) => {
+    tokenStore.set(token);
+    try {
+      const { data } = await api.get<User>("/auth/me");
+      setState({ user: data, isLoading: false, isAuthenticated: true });
+    } catch {
+      tokenStore.clear();
+      throw new Error("Failed to authenticate");
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refreshUser, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   );

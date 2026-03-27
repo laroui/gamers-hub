@@ -5,6 +5,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../lib/auth/AuthProvider.tsx";
 
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "/api/v1";
+const GOOGLE_SIGN_IN_URL = `${API_BASE}/auth/google`;
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M47.5 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h13.2c-.6 3-2.3 5.6-4.9 7.3v6h7.9c4.6-4.3 7.3-10.6 7.3-17.5z" fill="#4285F4"/>
+      <path d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.9-6c-2.1 1.4-4.9 2.3-8 2.3-6.1 0-11.3-4.1-13.1-9.7H2.7v6.2C6.7 42.8 14.8 48 24 48z" fill="#34A853"/>
+      <path d="M10.9 28.8c-.5-1.4-.8-2.8-.8-4.3s.3-3 .8-4.4v-6.2H2.7C1 17.4 0 20.6 0 24s1 6.6 2.7 9.1l8.2-4.3z" fill="#FBBC05"/>
+      <path d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.9 2.4 30.5 0 24 0 14.8 0 6.7 5.2 2.7 12.9l8.2 6.2C12.7 13.6 17.9 9.5 24 9.5z" fill="#EA4335"/>
+    </svg>
+  );
+}
+
 const schema = z
   .object({
     email: z.string().email("Please enter a valid email"),
@@ -272,6 +286,40 @@ export function RegisterPage() {
               {isSubmitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
             </button>
           </form>
+
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--gh-border)" }} />
+            <span style={{ fontSize: "12px", color: "var(--gh-text3)" }}>OR</span>
+            <div style={{ flex: 1, height: "1px", background: "var(--gh-border)" }} />
+          </div>
+
+          {/* Google sign-up */}
+          <a
+            href={GOOGLE_SIGN_IN_URL}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              width: "100%",
+              background: "var(--gh-surface2)",
+              border: "1px solid var(--gh-border2)",
+              borderRadius: "10px",
+              padding: "11px 16px",
+              color: "var(--gh-text)",
+              fontFamily: "var(--font-body)",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: "pointer",
+              textDecoration: "none",
+              transition: "border-color 0.2s, background 0.2s",
+              boxSizing: "border-box",
+            }}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </a>
 
           <p style={{ textAlign: "center", fontSize: "13px", color: "var(--gh-text2)", margin: 0 }}>
             Already have an account?{" "}
