@@ -5,12 +5,31 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../lib/auth/AuthProvider.tsx";
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "/api/v1";
-const GOOGLE_SIGN_IN_URL = `${API_BASE}/auth/google`;
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "/api/v1";
+const GOOGLE_URL = `${API_BASE}/auth/google`;
+
+const schema = z
+  .object({
+    email: z.string().email("Please enter a valid email"),
+    username: z
+      .string()
+      .min(3, "At least 3 characters")
+      .max(20, "Max 20 characters")
+      .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores"),
+    password: z.string().min(8, "At least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type FormValues = z.infer<typeof schema>;
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
       <path d="M47.5 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h13.2c-.6 3-2.3 5.6-4.9 7.3v6h7.9c4.6-4.3 7.3-10.6 7.3-17.5z" fill="#4285F4"/>
       <path d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.9-6c-2.1 1.4-4.9 2.3-8 2.3-6.1 0-11.3-4.1-13.1-9.7H2.7v6.2C6.7 42.8 14.8 48 24 48z" fill="#34A853"/>
       <path d="M10.9 28.8c-.5-1.4-.8-2.8-.8-4.3s.3-3 .8-4.4v-6.2H2.7C1 17.4 0 20.6 0 24s1 6.6 2.7 9.1l8.2-4.3z" fill="#FBBC05"/>
@@ -19,43 +38,24 @@ function GoogleIcon() {
   );
 }
 
-const schema = z
-  .object({
-    email: z.string().email("Please enter a valid email"),
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .max(20, "Username must be 20 characters or fewer")
-      .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type FormValues = z.infer<typeof schema>;
-
-const inputBaseStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--gh-bg3)",
-  border: "1px solid var(--gh-border2)",
+const inputStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: "10px",
-  padding: "12px 16px",
-  color: "var(--gh-text)",
-  fontFamily: "var(--font-body)",
+  padding: "12px 14px",
+  color: "#e8eaf0",
   fontSize: "14px",
   outline: "none",
-  transition: "border-color 0.2s, box-shadow 0.2s",
+  width: "100%",
   boxSizing: "border-box",
+  fontFamily: "var(--font-body)",
+  transition: "border-color 0.2s",
 };
 
 export function RegisterPage() {
   const { register: authRegister } = useAuth();
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const {
     register,
@@ -73,261 +73,217 @@ export function RegisterPage() {
       const e = err as { response?: { data?: { message?: string; error?: string } } };
       const msg = e?.response?.data?.message ?? "Something went wrong. Please try again.";
       const errField = e?.response?.data?.error ?? "";
-      if (errField === "EmailTaken") {
-        setError("email", { message: msg });
-      } else if (errField === "UsernameTaken") {
-        setError("username", { message: msg });
-      } else {
-        setApiError(msg);
-      }
+      if (errField === "EmailTaken") setError("email", { message: msg });
+      else if (errField === "UsernameTaken") setError("username", { message: msg });
+      else setApiError(msg);
     }
   };
 
-  const inputStyle = (field: string): React.CSSProperties => ({
-    ...inputBaseStyle,
-    borderColor: focusedField === field ? "var(--gh-cyan)" : "var(--gh-border2)",
-    boxShadow: focusedField === field ? "0 0 0 3px var(--gh-cyan-dim)" : "none",
-  });
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--gh-bg)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
+    <div style={{
+      minHeight: "100vh",
+      background: "#080b12",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Background blobs */}
+      <div style={{
+        position: "absolute", top: "-15%", right: "-10%",
+        width: "500px", height: "500px", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-20%", left: "-10%",
+        width: "600px", height: "600px", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(123,97,255,0.07) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      <div style={{ width: "100%", maxWidth: "420px", position: "relative" }}>
         {/* Logo */}
-        <div
-          style={{
+        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+          <div style={{
             fontFamily: "var(--font-display)",
-            fontSize: "48px",
-            fontWeight: 800,
-            letterSpacing: "4px",
-            color: "var(--gh-cyan)",
-            textShadow: "0 0 30px var(--gh-cyan-glow)",
+            fontSize: "52px",
+            fontWeight: 900,
+            letterSpacing: "6px",
+            color: "#00e5ff",
+            textShadow: "0 0 40px rgba(0,229,255,0.5), 0 0 80px rgba(0,229,255,0.2)",
             lineHeight: 1,
-          }}
-        >
-          GH
-        </div>
-        <div
-          style={{
-            fontSize: "12px",
-            letterSpacing: "3px",
-            color: "var(--gh-text3)",
-            marginBottom: "24px",
-          }}
-        >
-          GAMERS HUB
+            marginBottom: "8px",
+          }}>GH</div>
+          <div style={{ fontSize: "11px", letterSpacing: "4px", color: "#4a5468", fontFamily: "var(--font-display)" }}>
+            GAMERS HUB
+          </div>
         </div>
 
         {/* Card */}
-        <div
-          style={{
-            width: "100%",
-            background: "var(--gh-surface)",
-            border: "1px solid var(--gh-border)",
-            borderRadius: "20px",
-            padding: "32px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "24px",
-              fontWeight: 700,
-              color: "var(--gh-text)",
-              margin: 0,
-            }}
-          >
-            Create account
-          </h1>
+        <div style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: "24px",
+          padding: "36px",
+          backdropFilter: "blur(20px)",
+        }}>
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "22px",
+            fontWeight: 700,
+            color: "#e8eaf0",
+            margin: "0 0 6px",
+            textAlign: "center",
+          }}>Create your account</h1>
+          <p style={{ fontSize: "13px", color: "#4a5468", textAlign: "center", margin: "0 0 28px" }}>
+            Join the ultimate gaming library
+          </p>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            {/* Email */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", color: "var(--gh-text2)", letterSpacing: "0.5px" }}>
-                EMAIL
-              </label>
-              <input
-                type="email"
-                {...register("email")}
-                style={inputStyle("email")}
-                placeholder="you@example.com"
-                autoComplete="email"
-                onFocus={() => setFocusedField("email")}
-                onBlur={() => setFocusedField(null)}
-              />
-              {errors.email && (
-                <span style={{ fontSize: "12px", color: "var(--gh-pink)" }}>
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
-
-            {/* Username */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", color: "var(--gh-text2)", letterSpacing: "0.5px" }}>
-                USERNAME
-              </label>
-              <input
-                type="text"
-                {...register("username")}
-                style={inputStyle("username")}
-                placeholder="coolplayer99"
-                autoComplete="username"
-                onFocus={() => setFocusedField("username")}
-                onBlur={() => setFocusedField(null)}
-              />
-              {errors.username && (
-                <span style={{ fontSize: "12px", color: "var(--gh-pink)" }}>
-                  {errors.username.message}
-                </span>
-              )}
-            </div>
-
-            {/* Password */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", color: "var(--gh-text2)", letterSpacing: "0.5px" }}>
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                {...register("password")}
-                style={inputStyle("password")}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                onFocus={() => setFocusedField("password")}
-                onBlur={() => setFocusedField(null)}
-              />
-              {errors.password && (
-                <span style={{ fontSize: "12px", color: "var(--gh-pink)" }}>
-                  {errors.password.message}
-                </span>
-              )}
-            </div>
-
-            {/* Confirm password */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label style={{ fontSize: "12px", color: "var(--gh-text2)", letterSpacing: "0.5px" }}>
-                CONFIRM PASSWORD
-              </label>
-              <input
-                type="password"
-                {...register("confirmPassword")}
-                style={inputStyle("confirmPassword")}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                onFocus={() => setFocusedField("confirmPassword")}
-                onBlur={() => setFocusedField(null)}
-              />
-              {errors.confirmPassword && (
-                <span style={{ fontSize: "12px", color: "var(--gh-pink)" }}>
-                  {errors.confirmPassword.message}
-                </span>
-              )}
-            </div>
-
-            {/* API error */}
-            {apiError && (
-              <div
-                style={{
-                  background: "var(--gh-pink-dim)",
-                  border: "1px solid rgba(255,64,129,0.3)",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  fontSize: "13px",
-                  color: "var(--gh-pink)",
-                }}
-              >
-                {apiError}
-              </div>
-            )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              style={{
-                width: "100%",
-                background: isSubmitting ? "var(--gh-surface2)" : "var(--gh-cyan)",
-                color: isSubmitting ? "var(--gh-text2)" : "var(--gh-bg)",
-                border: "none",
-                borderRadius: "10px",
-                padding: "13px",
-                fontFamily: "var(--font-display)",
-                fontSize: "16px",
-                fontWeight: 700,
-                letterSpacing: "1px",
-                cursor: isSubmitting ? "not-allowed" : "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              {isSubmitting ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ flex: 1, height: "1px", background: "var(--gh-border)" }} />
-            <span style={{ fontSize: "12px", color: "var(--gh-text3)" }}>OR</span>
-            <div style={{ flex: 1, height: "1px", background: "var(--gh-border)" }} />
-          </div>
-
-          {/* Google sign-up */}
+          {/* Google — primary CTA */}
           <a
-            href={GOOGLE_SIGN_IN_URL}
+            href={GOOGLE_URL}
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "10px",
+              gap: "12px",
               width: "100%",
-              background: "var(--gh-surface2)",
-              border: "1px solid var(--gh-border2)",
-              borderRadius: "10px",
-              padding: "11px 16px",
-              color: "var(--gh-text)",
+              background: "#fff",
+              border: "none",
+              borderRadius: "12px",
+              padding: "14px 20px",
+              color: "#1a1a1a",
               fontFamily: "var(--font-body)",
-              fontSize: "14px",
-              fontWeight: 500,
+              fontSize: "15px",
+              fontWeight: 600,
               cursor: "pointer",
               textDecoration: "none",
-              transition: "border-color 0.2s, background 0.2s",
+              transition: "opacity 0.15s",
               boxSizing: "border-box",
+              letterSpacing: "0.2px",
             }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "0.92")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
           >
             <GoogleIcon />
             Continue with Google
           </a>
 
-          <p style={{ textAlign: "center", fontSize: "13px", color: "var(--gh-text2)", margin: 0 }}>
-            Already have an account?{" "}
-            <Link to="/login" style={{ color: "var(--gh-cyan)", textDecoration: "none" }}>
-              Sign in
-            </Link>
-          </p>
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", margin: "24px 0" }}>
+            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
+            <span style={{ fontSize: "11px", color: "#4a5468", letterSpacing: "1px" }}>OR</span>
+            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
+          </div>
+
+          {/* Email form */}
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "11px", letterSpacing: "1px", color: "#4a5468" }}>EMAIL</label>
+              <input
+                type="email"
+                {...register("email")}
+                placeholder="you@example.com"
+                autoComplete="email"
+                style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#00e5ff")}
+                onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+              />
+              {errors.email && <span style={{ fontSize: "12px", color: "#ff4081" }}>{errors.email.message}</span>}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "11px", letterSpacing: "1px", color: "#4a5468" }}>USERNAME</label>
+              <input
+                type="text"
+                {...register("username")}
+                placeholder="coolplayer99"
+                autoComplete="username"
+                style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#00e5ff")}
+                onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+              />
+              {errors.username && <span style={{ fontSize: "12px", color: "#ff4081" }}>{errors.username.message}</span>}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "11px", letterSpacing: "1px", color: "#4a5468" }}>PASSWORD</label>
+                <input
+                  type="password"
+                  {...register("password")}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  style={inputStyle}
+                  onFocus={e => (e.target.style.borderColor = "#00e5ff")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                />
+                {errors.password && <span style={{ fontSize: "12px", color: "#ff4081" }}>{errors.password.message}</span>}
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "11px", letterSpacing: "1px", color: "#4a5468" }}>CONFIRM</label>
+                <input
+                  type="password"
+                  {...register("confirmPassword")}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  style={inputStyle}
+                  onFocus={e => (e.target.style.borderColor = "#00e5ff")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                />
+                {errors.confirmPassword && (
+                  <span style={{ fontSize: "12px", color: "#ff4081" }}>{errors.confirmPassword.message}</span>
+                )}
+              </div>
+            </div>
+
+            {apiError && (
+              <div style={{
+                background: "rgba(255,64,129,0.08)",
+                border: "1px solid rgba(255,64,129,0.25)",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                fontSize: "13px",
+                color: "#ff4081",
+              }}>
+                {apiError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                width: "100%",
+                background: isSubmitting ? "rgba(0,229,255,0.3)" : "#00e5ff",
+                color: "#080b12",
+                border: "none",
+                borderRadius: "10px",
+                padding: "13px",
+                fontFamily: "var(--font-display)",
+                fontSize: "15px",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+                marginTop: "4px",
+              }}
+            >
+              {isSubmitting ? "CREATING…" : "CREATE ACCOUNT"}
+            </button>
+          </form>
         </div>
+
+        {/* Sign in link */}
+        <p style={{ textAlign: "center", fontSize: "13px", color: "#4a5468", marginTop: "24px" }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: "#00e5ff", textDecoration: "none", fontWeight: 500 }}>
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

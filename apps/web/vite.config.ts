@@ -26,8 +26,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallback: "/offline.html",
-        navigateFallbackAllowlist: [/^(?!\/(api|docs))/],
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [/^\/api/, /^\/docs/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/images\.igdb\.com\/.*/i,
