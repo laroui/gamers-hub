@@ -10,7 +10,10 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
+COPY packages/platform-sdk/package.json ./packages/platform-sdk/
 RUN pnpm install --frozen-lockfile
 
 # ── Development (hot reload via tsx watch) ────────────────────
@@ -32,7 +35,10 @@ WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
 COPY packages/types/package.json ./packages/types/
+COPY packages/platform-sdk/package.json ./packages/platform-sdk/
 
 RUN pnpm install --frozen-lockfile --prod
 
