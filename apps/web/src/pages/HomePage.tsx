@@ -53,7 +53,7 @@ function Avatar({ url, username, size = 32 }: { url: string | null; username: st
 // Post Detail Modal
 // ─────────────────────────────────────────────────────────────
 
-function CommentItem({ comment, userId, onDelete }: { comment: PostComment; userId?: string; onDelete: (id: string) => void }) {
+function CommentItem({ comment, userId, onDelete }: { comment: PostComment; userId?: string | undefined; onDelete: (id: string) => void }) {
   return (
     <div style={{ display: "flex", gap: "10px", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       <Avatar url={comment.author.avatarUrl} username={comment.author.username} size={30} />
