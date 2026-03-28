@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"),
   googleId: text("google_id").unique(),
   avatarUrl: text("avatar_url"),
+  role: text("role").notNull().default("user"), // 'user' | 'admin' | 'moderator'
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -233,6 +234,83 @@ export const playSessionsRelations = relations(playSessions, ({ one }) => ({
   user: one(users, { fields: [playSessions.userId], references: [users.id] }),
   userGame: one(userGames, { fields: [playSessions.userGameId], references: [userGames.id] }),
 }));
+
+// ── Audit Logs ────────────────────────────────────────────────
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    adminId: uuid("admin_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    adminIdx: index("audit_logs_admin_id_idx").on(t.adminId),
+    createdAtIdx: index("audit_logs_created_at_idx").on(t.createdAt),
+  }),
+);
+
+// ── News Articles (CMS) ───────────────────────────────────────
+export const articles = pgTable(
+  "articles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    authorId: uuid("author_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    title: text("title").notNull(),
+    slug: text("slug").unique().notNull(),
+    summary: text("summary").notNull(),
+    content: text("content").notNull(),
+    coverImageUrl: text("cover_image_url"),
+    tag: text("tag").notNull().default("news"),
+    status: text("status").notNull().default("draft"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    aiGenerated: boolean("ai_generated").notNull().default(false),
+    n8nWorkflowId: text("n8n_workflow_id"),
+    socialPosted: jsonb("social_posted"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    statusIdx: index("articles_status_idx").on(t.status),
+    createdAtIdx: index("articles_created_at_idx").on(t.createdAt),
+  }),
+);
+
+// ── Social Accounts ───────────────────────────────────────────
+export const socialAccounts = pgTable("social_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  platform: text("platform").notNull(),
+  name: text("name").notNull(),
+  credentials: jsonb("credentials").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Social Publications ────────────────────────────────────────
+export const socialPublications = pgTable(
+  "social_publications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    articleId: uuid("article_id").references(() => articles.id, { onDelete: "set null" }),
+    platform: text("platform").notNull(),
+    externalId: text("external_id"),
+    content: text("content").notNull(),
+    status: text("status").notNull().default("pending"),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    articleIdx: index("social_pubs_article_id_idx").on(t.articleId),
+  }),
+);
 
 // ── Notifications ─────────────────────────────────────────────
 export const notifications = pgTable(

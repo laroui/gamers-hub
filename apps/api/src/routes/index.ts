@@ -13,6 +13,15 @@ export async function registerRoutes(server: AnyFastify) {
   const { postsRoutes } = await import("./posts.js");
   const { feedRoutes } = await import("./feed.js");
 
+  // Admin routes
+  const { adminRoutes } = await import("./admin/index.js");
+  const { adminAnalyticsRoutes } = await import("./admin/analytics.js");
+  const { adminArticlesRoutes } = await import("./admin/articles.js");
+  const { adminSocialRoutes } = await import("./admin/social.js");
+  const { adminAIRoutes } = await import("./admin/ai.js");
+  const { adminDatabaseRoutes } = await import("./admin/database.js");
+  const { adminUsersRoutes } = await import("./admin/users.js");
+
   await server.register(authRoutes, { prefix: "/api/v1/auth" });
   await server.register(platformRoutes, { prefix: "/api/v1/platforms" });
   await server.register(libraryRoutes, { prefix: "/api/v1/library" });
@@ -22,4 +31,13 @@ export async function registerRoutes(server: AnyFastify) {
   await server.register(notificationsRoutes, { prefix: "/api/v1/notifications" });
   await server.register(postsRoutes, { prefix: "/api/v1/posts" });
   await server.register(feedRoutes, { prefix: "/api/v1/feed" });
+
+  // Admin
+  await server.register(adminRoutes, { prefix: "/api/v1/admin" });
+  await server.register(adminAnalyticsRoutes, { prefix: "/api/v1/admin/analytics" });
+  await server.register(adminArticlesRoutes, { prefix: "/api/v1/admin/articles" });
+  await server.register(adminSocialRoutes, { prefix: "/api/v1/admin/social" });
+  await server.register(adminAIRoutes, { prefix: "/api/v1/admin/ai" });
+  await server.register(adminDatabaseRoutes, { prefix: "/api/v1/admin/db" });
+  await server.register(adminUsersRoutes, { prefix: "/api/v1/admin/users" });
 }

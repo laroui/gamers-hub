@@ -66,6 +66,12 @@ const envSchema = z.object({
   WORKER_CONCURRENCY: z.coerce.number().default(3),
   SYNC_JOB_TIMEOUT_MS: z.coerce.number().default(120000),
 
+  // Admin
+  ADMIN_SECRET: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  WEBHOOK_SECRET: z.string().optional(),
+  ADMIN_USER_ID: z.string().optional(),
+
   // Rate limiting
   RATE_LIMIT_AUTH_MAX: z.coerce.number().default(10),
   RATE_LIMIT_AUTH_WINDOW: z.coerce.number().default(60000),
