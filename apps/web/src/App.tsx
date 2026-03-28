@@ -2,11 +2,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./lib/auth/AuthProvider.tsx";
 import { ProtectedRoute } from "./lib/auth/ProtectedRoute.tsx";
 import { AppShell } from "./components/layout/AppShell.tsx";
+import { PublicShell } from "./components/layout/PublicShell.tsx";
 import { useTauriEvents } from "./hooks/useTauriEvents.ts";
 import { useCommandPalette } from "./hooks/useCommandPalette.ts";
 import { CommandPalette } from "./components/search/CommandPalette.tsx";
 
-// Pages — implemented in B7+
+import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage.tsx";
@@ -24,15 +25,19 @@ export function App() {
     <AuthProvider>
       <CommandPalette />
       <Routes>
-        {/* Public */}
+        {/* Public routes — use PublicShell (sticky topbar with login/avatar) */}
+        <Route element={<PublicShell />}>
+          <Route index element={<HomePage />} />
+        </Route>
+
+        {/* Auth pages — standalone (no shell) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-        {/* Protected — wrapped in AppShell */}
+        {/* Protected routes — use AppShell (sidebar + topbar) */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/library" replace />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/library/:gameId" element={<GameDetailPage />} />
             <Route path="/platforms" element={<PlatformsPage />} />
@@ -42,7 +47,7 @@ export function App() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/library" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
