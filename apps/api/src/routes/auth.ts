@@ -98,7 +98,9 @@ function refreshCookieOptions(secure: boolean) {
   return {
     httpOnly: true,
     secure,
-    sameSite: "strict" as const,
+    // "none" is required for cross-origin cookie (Railway API ↔ Vercel frontend)
+    // "lax" for local dev where both are on localhost
+    sameSite: (secure ? "none" : "lax") as "none" | "lax",
     path: "/api/v1/auth/refresh",
     maxAge: 60 * 60 * 24 * 30,
   };

@@ -12,6 +12,7 @@ const server = Fastify({
       : {}),
   },
   bodyLimit: 1048576, // 1MB
+  trustProxy: true, // required behind Railway/nginx reverse proxy for correct req.ip and HTTPS detection
 });
 
 async function start() {
