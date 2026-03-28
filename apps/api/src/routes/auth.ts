@@ -994,8 +994,7 @@ export async function authRoutes(server: FastifyInstance) {
         userEmail = existingUser.email;
       } else {
         // Create new user — generate a username from email prefix
-        const base = googleProfile.email
-          .split("@")[0]
+        const base = (googleProfile.email.split("@")[0] ?? "user")
           .replace(/[^a-zA-Z0-9_]/g, "_")
           .replace(/^_+|_+$/g, "")
           .slice(0, 15) || "user";
