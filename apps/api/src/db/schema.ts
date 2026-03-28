@@ -150,6 +150,63 @@ export const achievements = pgTable(
   }),
 );
 
+// ── Posts ─────────────────────────────────────────────────────
+export const posts = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    authorId: uuid("author_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    coverUrl: text("cover_url"),
+    tags: text("tags").array().default([]).notNull(),
+    pinned: boolean("pinned").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    authorIdx: index("posts_author_id_idx").on(t.authorId),
+    createdAtIdx: index("posts_created_at_idx").on(t.createdAt),
+  }),
+);
+
+export const postComments = pgTable(
+  "post_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .references(() => posts.id, { onDelete: "cascade" })
+      .notNull(),
+    authorId: uuid("author_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    postIdIdx: index("post_comments_post_id_idx").on(t.postId),
+  }),
+);
+
+export const postLikes = pgTable(
+  "post_likes",
+  {
+    postId: uuid("post_id")
+      .references(() => posts.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: uniqueIndex("post_likes_pk").on(t.postId, t.userId),
+  }),
+);
+
 // ── Refresh Token Blacklist ────────────────────────────────────
 export const tokenBlacklist = pgTable("token_blacklist", {
   id: uuid("id").primaryKey().defaultRandom(),

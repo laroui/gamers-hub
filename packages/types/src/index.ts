@@ -211,6 +211,37 @@ export interface LibraryQueryParams {
   cursor?: string;
 }
 
+// ── Posts & Community ─────────────────────────────────────────
+export interface PostAuthor {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+}
+
+export interface Post {
+  id: string;
+  title: string;
+  body: string;
+  coverUrl: string | null;
+  tags: string[];
+  pinned: boolean;
+  author: PostAuthor;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  author: PostAuthor;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ── Notifications ─────────────────────────────────────────────
 export type NotificationType =
   | "sync_complete"
