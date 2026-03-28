@@ -17,9 +17,21 @@ import { PlatformsPage } from "./pages/PlatformsPage.tsx";
 import { StatsPage } from "./pages/StatsPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
 
+// Admin
+import AdminLoginPage from "./pages/admin/AdminLoginPage.tsx";
+import AdminLayout from "./layouts/AdminLayout.tsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
+import AdminPosts from "./pages/admin/AdminPosts.tsx";
+import AdminSocial from "./pages/admin/AdminSocial.tsx";
+import AdminAIContent from "./pages/admin/AdminAIContent.tsx";
+import AdminDatabase from "./pages/admin/AdminDatabase.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+
 export function App() {
   useTauriEvents();
   useCommandPalette();
+
+  const adminPath = (import.meta.env["VITE_ADMIN_PATH"] as string | undefined) ?? "/admin-access";
 
   return (
     <AuthProvider>
@@ -34,6 +46,20 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+        {/* Admin login — secret URI */}
+        <Route path={adminPath} element={<AdminLoginPage />} />
+
+        {/* Admin panel — protected by AdminLayout (checks role === 'admin') */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="posts" element={<AdminPosts />} />
+          <Route path="social" element={<AdminSocial />} />
+          <Route path="ai-content" element={<AdminAIContent />} />
+          <Route path="database" element={<AdminDatabase />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
 
         {/* Protected routes — use AppShell (sidebar + topbar) */}
         <Route element={<ProtectedRoute />}>
