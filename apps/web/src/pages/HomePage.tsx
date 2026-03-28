@@ -621,7 +621,7 @@ function CommunitySection() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const postsData: Post[] = data?.pages.flatMap((p) => p.data) ?? [];
+  const postsData = (data?.pages.flatMap((p) => p.data ?? []) ?? []).filter((p): p is Post => p != null);
 
   return (
     <section id="community" style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 32px 80px" }}>
